@@ -6,48 +6,16 @@
 #include <cmath>
 #include <locale>
 
-
-extern "C" {
-#include "libavcodec/avcodec.h"
-#include "libswscale/swscale.h"
-#include "libavutil/avutil.h"
-#include "libavformat/avformat.h"
-#include "libavutil/timestamp.h"
-#include "libavutil/imgutils.h"
-#include "libswresample/swresample.h"
-}
+#include "log/log.h"
 
 #define STREAM_DURATION   10.0
 #define SCALE_FLAGS SWS_BICUBIC
-
-// log标签
-#define  TAG    "ffmpegtest"
-// 定义info信息
-#define LOGI(...) __android_log_print(ANDROID_LOG_INFO,TAG,__VA_ARGS__)
-// 定义debug信息
-#define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, TAG, __VA_ARGS__)
-// 定义error信息
-#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR,TAG,__VA_ARGS__)
-
 #define ERROR -1;
 
 
 AVFrame *yuv_frame = NULL;
 int w = 0;
 int h = 0;
-
-
-void log_callback_test2(void *ptr, int level, const char *fmt, va_list vl) {
-    va_list vl2;
-    char *line = static_cast<char *>(malloc(128 * sizeof(char)));
-    static int print_prefix = 1;
-    va_copy(vl2, vl);
-    av_log_format_line(ptr, level, fmt, vl2, line, 128, &print_prefix);
-    va_end(vl2);
-    line[127] = '\0';
-    LOGE("%s", line);
-    free(line);
-}
 
 
 // a wrapper around a single output AVStream
@@ -376,7 +344,7 @@ extern "C"
 JNIEXPORT void JNICALL
 Java_com_wyl_ffmpegtest_MainActivity_makeMediaFile(JNIEnv *env, jobject thiz) {
 
-    av_log_set_callback(log_callback_test2);
+    av_log_set_callback(FFLog::log_callback_android);
 
     //文件输出路劲
     const char *output_file_path = "/data/user/0/com.wyl.ffmpegtest/files/test_media.mp4";
@@ -476,7 +444,7 @@ void save_one_frame(AVFrame *frame) {
 extern "C"
 JNIEXPORT void JNICALL
 Java_com_wyl_ffmpegtest_MainActivity_decodeImages(JNIEnv *env, jobject thiz) {
-    av_log_set_callback(log_callback_test2);
+    av_log_set_callback(FFLog::log_callback_android);
 
 //    av_parser_parse2();直接将数据解析为frame
 

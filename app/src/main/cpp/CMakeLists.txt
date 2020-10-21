@@ -17,11 +17,24 @@ set(SHARED_PATH ${CMAKE_SOURCE_DIR}/../nativeLibs/armeabi-v7a)
 FILE(GLOB JNI_CPP ${JNI_PATH}/*.cpp)
 FILE(GLOB JNI_H ${JNI_PATH}/*.h)
 
+#video
+FILE(GLOB VIDEO_CPP ${JNI_PATH}/video/*.cpp)
+FILE(GLOB VIDEO_H ${JNI_PATH}/video/*.h)
+
+#log
+FILE(GLOB LOG_CPP ${JNI_PATH}/log/*.cpp)
+FILE(GLOB LOG_H ${JNI_PATH}/log/*.h)
+
 
 #======================加载头文件===================
 include_directories(${JNI_H})
 #ffmpeg头文件
 include_directories(${JNI_PATH}/include)
+#video
+include_directories(${VIDEO_H})
+#log
+include_directories(${LOG_H})
+
 
 #======================加载库文件===================
 
@@ -45,7 +58,10 @@ add_library(avfilter SHARED IMPORTED)
 set_target_properties(avfilter PROPERTIES IMPORTED_LOCATION ${SHARED_PATH}/libavfilter.so)
 
 #通过源码，添加自己编写的库
-add_library(native-lib SHARED ${JNI_CPP})
+add_library(native-lib SHARED
+        ${JNI_CPP}
+        ${VIDEO_CPP}
+        ${LOG_CPP})
 
 #找到系统提供的库
 find_library(log-lib log)
