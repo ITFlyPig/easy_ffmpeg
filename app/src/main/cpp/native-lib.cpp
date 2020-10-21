@@ -28,6 +28,8 @@ extern "C" {
 // 定义error信息
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR,TAG,__VA_ARGS__)
 
+#define ERROR -1;
+
 
 AVFrame *yuv_frame = NULL;
 int w = 0;
@@ -64,6 +66,14 @@ typedef struct OutputStream {
     struct SwsContext *sws_ctx;
     struct SwrContext *swr_ctx;
 } OutputStream;
+
+typedef struct OpenInfo {
+    AVFormatContext *c = nullptr;
+    int video_index;
+    AVCodec *codec = nullptr;
+    AVCodecContext *codec_ctx = nullptr;
+
+} OpenInfo;
 
 
 #define STREAM_FRAME_RATE 25 /* 25 images/s */
@@ -434,7 +444,6 @@ void save_one_frame(AVFrame *frame) {
 }
 
 
-
 extern "C"
 JNIEXPORT void JNICALL
 Java_com_wyl_ffmpegtest_MainActivity_decodeImages(JNIEnv *env, jobject thiz) {
@@ -555,7 +564,8 @@ Java_com_wyl_ffmpegtest_MainActivity_decodeImages(JNIEnv *env, jobject thiz) {
             goto __end2;
         }
         //将rgb转为yuv420p
-        ret = sws_scale(sws_cxt, frame->data, frame->linesize, 0, frame->height, yuv_frame->data, yuv_frame->linesize);
+        ret = sws_scale(sws_cxt, frame->data, frame->linesize, 0, frame->height, yuv_frame->data,
+                        yuv_frame->linesize);
         LOGE("转换后的slice height为：%i", ret);
 
         //生成视频
@@ -597,5 +607,194 @@ Java_com_wyl_ffmpegtest_MainActivity_decodeImages(JNIEnv *env, jobject thiz) {
     av_packet_free(&packet);
     __end:
     avcodec_free_context(&dec_codec_ctx);
+
+}
+
+bool is_empty(const char *s) {
+    return s == nullptr || *s != '\0';
+}
+
+/*打开文件，创建流，读取文件信息*/
+int open_stream(const char *path, OpenInfo *info) {
+    int ret = -1;
+    if (is_empty(path)) {
+        LOGE("传入的文件路劲为空");
+        return ret;
+    }
+
+    AVFormatContext *c = info->c;
+
+    /*创建流，读取文件头，流必须使用avformat_close_input关闭*/
+    ret = avformat_open_input(&c, path, NULL, NULL);
+    if (ret < 0) {
+        LOGE("文件打开失败：%s", av_err2str(ret));
+        return ret;
+    }
+    //通过读取packets获得流相关的信息，这个方法对于没有header的媒体文件特别有用，读取到的packets会被缓存后续使用。
+    ret = avformat_find_stream_info(c, NULL);
+    if (ret < 0) {
+        LOGE(" avformat_find_stream_info 获取流信息失败");
+        return ret;
+    }
+
+    //通过流获取解码器相关
+    int video_index = -1;
+    for (int i = 0; i < c->nb_streams; ++i) {
+        if (c->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
+            //找到视频流的索引
+            video_index = i;
+        }
+    }
+    if (video_index == -1) {
+        LOGE("未找到视频流");
+    }
+    info->video_index = video_index;
+
+    return ret;
+}
+
+/*找到和打开解码器*/
+int find_and_open_decoder(OpenInfo *info) {
+    AVCodec *codec = nullptr;
+    AVCodecContext *codec_cxt = nullptr;
+    int ret = -1;
+
+    //据id找找到解码器
+    AVCodecParameters *codecpar = info->c->streams[info->video_index]->codecpar;
+    AVCodecID codec_id = codecpar->codec_id;
+    LOGE("找到解码器ID：%i， AV_CODEC_ID_PNG解码器的id： %i", codec_id, AV_CODEC_ID_PNG);
+    codec = avcodec_find_decoder(codec_id);
+    if (codec == nullptr) {
+        LOGE("未找到解码器");
+        return ret;
+    }
+    //创建解码上下文，初始化解码器默认值，必须使用avcodec_free_context释放
+    codec_cxt = avcodec_alloc_context3(codec);
+    if (codec_cxt == NULL) {
+        LOGE("解码器上下文创建失败");
+        return ret;
+    }
+    //使用支持的解码器参数 填充 解码器上下文
+    ret = avcodec_parameters_to_context(codec_cxt, codecpar);
+    if (ret < 0) {
+        LOGE("Failed to copy decoder parameters to input decoder context：%s", av_err2str(ret));
+        return ret;
+    }
+
+    LOGE("解码器的名字：%s, 媒体文件像素格式：%i", codec->name, codec_cxt->pix_fmt);
+    //打开解码器:Initialize the AVCodecContext to use the given AVCodec.
+    ret = avcodec_open2(codec_cxt, codec, nullptr);
+    if (ret < 0) {
+        LOGE("Failed to open decoder for stream");
+    }
+    info->codec = codec;
+    info->codec_ctx = codec_cxt;
+    return ret;
+}
+
+/*解码，得到yuv格式的数据*/
+AVFrame *decode_image(OpenInfo *info) {
+
+    AVPacket *packet = nullptr;
+    AVFrame *frame = nullptr;
+    AVFrame *yuv_frame = nullptr;
+    SwsContext *sws_cxt = nullptr;
+    int ret = -1;
+
+    AVPixelFormat out_pix_fmt = AV_PIX_FMT_YUV420P;
+    AVCodecContext *codec_ctx = info->codec_ctx;
+
+    //申请Packet容器
+    packet = av_packet_alloc();
+    if (packet == nullptr) {
+        LOGE("申请packet失败");
+        return nullptr;
+    }
+    av_init_packet(packet);
+
+    frame = av_frame_alloc();
+    if (frame == nullptr) {
+        LOGE("申请packet失败");
+        goto end;
+    }
+
+    sws_cxt = sws_getContext(codec_ctx->width, codec_ctx->height, codec_ctx->pix_fmt,
+                             codec_ctx->width, codec_ctx->height, out_pix_fmt,
+                             SWS_FAST_BILINEAR, NULL, NULL, NULL);
+    if (sws_cxt == nullptr) {
+        LOGE("获取SwsContext失败");
+        goto end;
+    }
+
+    while (av_read_frame(info->c, packet) == 0) {
+        LOGE("读取到的packet size:%5d", packet->size);
+        int got_frame = -1;
+        int size = avcodec_decode_video2(codec_ctx, frame, &got_frame, packet);
+        LOGE("解码得到的的字节数：%d, linesize[0]:%d", size, frame->linesize[0]);
+        if (size < 0) {
+            LOGE("解码Packet错误：%s", av_err2str(size));
+            goto end;
+        }
+
+        yuv_frame = alloc_picture(out_pix_fmt, frame->width, frame->height);
+        if (yuv_frame == NULL) {
+            LOGE("申请转换后的yuv存储Frame失败");
+            goto end;
+        }
+        //将rgb转为yuv420p
+        ret = sws_scale(sws_cxt, frame->data, frame->linesize, 0, frame->height, yuv_frame->data,
+                        yuv_frame->linesize);
+        LOGE("转换的slice height为：%i", ret);
+    }
+
+    end:
+    if (packet != nullptr) {
+        av_packet_unref(packet);
+    }
+    if (frame != nullptr) {
+        av_frame_free(&frame);
+    }
+    if (sws_cxt != nullptr) {
+        sws_freeContext(sws_cxt);
+    }
+    return yuv_frame;
+
+}
+
+/*解析输入的图片，得到一帧Frame*/
+AVFrame *parse_image(const char *img_path) {
+    AVFrame *yuv_frame = nullptr;
+    if (is_empty(img_path)) {
+        return nullptr;
+    }
+    OpenInfo open_info = {0};
+
+    if (open_stream(img_path, &open_info) < 0) {
+        goto end;
+    }
+
+    if (find_and_open_decoder(&open_info) < 0) {
+        goto end;
+    }
+    //打印正在解析的多媒体的信息
+    av_dump_format(open_info.c, open_info.video_index, img_path, 0);
+
+    yuv_frame = decode_image(&open_info);
+    if (yuv_frame == nullptr) {
+        goto end;
+    }
+
+    end:
+//    if (yuv_frame != nullptr) {
+//        av_frame_free(&yuv_frame);
+//    }
+    if (open_info.c != nullptr) {
+        avformat_close_input(&open_info.c);
+    }
+    if (open_info.codec_ctx != nullptr) {
+        avcodec_free_context(&open_info.codec_ctx);
+    }
+
+    return yuv_frame;
 
 }
