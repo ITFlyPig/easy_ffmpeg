@@ -77,7 +77,7 @@ typedef struct OpenInfo {
 } OpenInfo;
 
 
-#define STREAM_FRAME_RATE 25 /* 25 images/s */
+#define STREAM_FRAME_RATE 1 /* 25 images/s */
 #define STREAM_PIX_FMT    AV_PIX_FMT_YUV420P /* default pix_fmt */
 #define DATASIZE 2048*2048
 
@@ -126,7 +126,7 @@ void add_stream(OutputStream *ost, AVFormatContext *oc,
      * of which frame timestamps are represented. For fixed-fps content,
      * timebase should be 1/framerate and timestamp increments should be
      * identical to 1. */
-    ost->st->time_base = (AVRational) {1, STREAM_FRAME_RATE};
+    ost->st->time_base = (AVRational) {1, STREAM_FRAME_RATE};//设置帧率
     c->time_base = ost->st->time_base;
 
     c->gop_size = 12; /* emit one intra frame every twelve frames at most */
