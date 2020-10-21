@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cmath>
+#include <locale>
 
 
 extern "C" {
@@ -80,6 +81,8 @@ typedef struct OpenInfo {
 #define STREAM_PIX_FMT    AV_PIX_FMT_YUV420P /* default pix_fmt */
 #define DATASIZE 2048*2048
 
+
+AVFrame *parse_image(const char *img_path);
 
 //添加一个video stream和初始化编码器codec
 void add_stream(OutputStream *ost, AVFormatContext *oc,
@@ -233,6 +236,24 @@ void fill_yuv_image(AVFrame *pict, int frame_index,
     }
 }
 
+
+int index = 1;
+const char *img_dir = "/sdcard/video_img/rank_title_bg%i.png";
+
+/*获取输入的图片的地址*/
+void get_img_path(char *img_path) {
+    if (img_path == nullptr) {
+        return;
+    }
+    if (index < 1) {
+        index = 5;
+    } else if (index > 5) {
+        index = 1;
+    }
+    sprintf(img_path, img_dir, index);
+    index++;
+}
+
 //得到一帧数据
 AVFrame *get_video_frame(OutputStream *ost) {
     AVCodecContext *c = ost->enc;
@@ -270,12 +291,20 @@ AVFrame *get_video_frame(OutputStream *ost) {
 //    } else {
 //        fill_yuv_image(ost->frame, ost->next_pts, c->width, c->height);
 //    }
-    ost->frame = yuv_frame;
 
+
+    //申请内存，存放图片的地址
+    char *img_path = static_cast<char *>(malloc(1024));
+    get_img_path(img_path);
+    LOGE("将要解析的图片的地址：%s", img_path);
+    ost->frame = parse_image(img_path);
+    //释放内存
+    free(img_path);
     ost->frame->pts = ost->next_pts++;
 
     return ost->frame;
 }
+
 
 /*打印包信息*/
 void log_packet(const AVFormatContext *fmt_ctx, const AVPacket *pkt) {
@@ -392,7 +421,7 @@ Java_com_wyl_ffmpegtest_MainActivity_makeMediaFile(JNIEnv *env, jobject thiz) {
 
     /* open the output file, if needed */
     if (!(fmt->flags & AVFMT_NOFILE)) {
-        ret = avio_open(&oc->pb, output_file_path, AVIO_FLAG_WRITE);
+        ret = avio_open(&oc->pb, output_file_path, AVIO_FLAG_READ_WRITE);
         if (ret < 0) {
             LOGE("Could not open '%s': %s\n", filename,
                  av_err2str(ret));
@@ -611,7 +640,7 @@ Java_com_wyl_ffmpegtest_MainActivity_decodeImages(JNIEnv *env, jobject thiz) {
 }
 
 bool is_empty(const char *s) {
-    return s == nullptr || *s != '\0';
+    return s == nullptr || *s == '\0';
 }
 
 /*打开文件，创建流，读取文件信息*/
@@ -622,7 +651,7 @@ int open_stream(const char *path, OpenInfo *info) {
         return ret;
     }
 
-    AVFormatContext *c = info->c;
+    AVFormatContext *c = nullptr;
 
     /*创建流，读取文件头，流必须使用avformat_close_input关闭*/
     ret = avformat_open_input(&c, path, NULL, NULL);
@@ -649,6 +678,7 @@ int open_stream(const char *path, OpenInfo *info) {
         LOGE("未找到视频流");
     }
     info->video_index = video_index;
+    info->c = c;
 
     return ret;
 }
@@ -797,4 +827,16 @@ AVFrame *parse_image(const char *img_path) {
 
     return yuv_frame;
 
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_wyl_ffmpegtest_MainActivity_testParse(JNIEnv *env, jobject thiz) {
+    AVFrame *frame;
+    frame = parse_image("sdcard/img_video_1.png");
+    if (frame == nullptr) {
+        LOGE("parse_image 返回的Frame为空");
+    } else {
+        LOGE("parse_image 返回的Frame为width:%i, height:%i", frame->width, frame->height);
+    }
 }

@@ -12,6 +12,9 @@ import android.widget.TextView;
 import com.wyl.ffmpegtest.permission.PermissionListener;
 import com.wyl.ffmpegtest.permission.PermissionRequestUtil;
 
+import java.io.File;
+import java.io.IOException;
+
 public class MainActivity extends AppCompatActivity {
 
     // Used to load the 'native-lib' library on application startup.
@@ -46,7 +49,22 @@ public class MainActivity extends AppCompatActivity {
 //                        test22();
 //                        makeMediaFile();
 //                        Log.e("tag", getBaseContext().getFilesDir().getAbsolutePath());
-                        decodeImages();
+
+
+                        String destFile = getFilesDir().getAbsolutePath() + "/test_media.mp4";
+                        File file = new File(destFile);
+                        Log.e(TAG, "onResult: " + destFile);
+                        if (!file.exists()) {
+                            try {
+                                file.createNewFile();
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        }
+
+//                        decodeImages();
+//                        testParse();
+                        makeMediaFile();
 
                     }
                 }, Manifest.permission.READ_EXTERNAL_STORAGE);
@@ -69,4 +87,6 @@ public class MainActivity extends AppCompatActivity {
     public native void makeMediaFile();
 
     public native void decodeImages();
+
+    public native void testParse();
 }
