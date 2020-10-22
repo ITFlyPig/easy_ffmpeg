@@ -5,6 +5,8 @@
 
 cmake_minimum_required(VERSION 3.4.1)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11")
+
 #JNI 路径
 set(JNI_PATH ${CMAKE_SOURCE_DIR})
 # 动态库 路径
@@ -19,11 +21,19 @@ FILE(GLOB JNI_H ${JNI_PATH}/*.h)
 
 #video
 FILE(GLOB VIDEO_CPP ${JNI_PATH}/video/*.cpp)
-FILE(GLOB VIDEO_H ${JNI_PATH}/video/*.h)
+FILE(GLOB VIDEO_H ${JNI_PATH}/video)
+
+#image
+FILE(GLOB IMAGE_CPP ${JNI_PATH}/image/*.cpp)
+FILE(GLOB IMAGE_H ${JNI_PATH}/image)
 
 #log
 FILE(GLOB LOG_CPP ${JNI_PATH}/log/*.cpp)
-FILE(GLOB LOG_H ${JNI_PATH}/log/*.h)
+FILE(GLOB LOG_H ${JNI_PATH}/log)
+
+#utils
+FILE(GLOB UTILS_CPP ${JNI_PATH}/utils/*.cpp)
+FILE(GLOB UTILS_H ${JNI_PATH}/utils)
 
 
 #======================加载头文件===================
@@ -34,6 +44,10 @@ include_directories(${JNI_PATH}/include)
 include_directories(${VIDEO_H})
 #log
 include_directories(${LOG_H})
+#image
+include_directories(${IMAGE_H})
+#utils
+include_directories(${UTILS_H})
 
 
 #======================加载库文件===================
@@ -61,7 +75,9 @@ set_target_properties(avfilter PROPERTIES IMPORTED_LOCATION ${SHARED_PATH}/libav
 add_library(native-lib SHARED
         ${JNI_CPP}
         ${VIDEO_CPP}
-        ${LOG_CPP})
+        ${LOG_CPP}
+        ${IMAGE_CPP}
+        ${UTILS_CPP})
 
 #找到系统提供的库
 find_library(log-lib log)
