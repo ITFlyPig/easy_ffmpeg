@@ -7,6 +7,7 @@
 #include <locale>
 
 #include "log/log.h"
+#include "image.h"
 
 #define STREAM_DURATION   10.0
 #define SCALE_FLAGS SWS_BICUBIC
@@ -50,7 +51,7 @@ typedef struct OpenInfo {
 #define DATASIZE 2048*2048
 
 
-AVFrame *parse_image(const char *img_path);
+AVFrame *parse_image(char *img_path);
 
 //添加一个video stream和初始化编码器codec
 void add_stream(OutputStream *ost, AVFormatContext *oc,
@@ -612,9 +613,9 @@ bool is_empty(const char *s) {
 }
 
 /*打开文件，创建流，读取文件信息*/
-int open_stream(const char *path, OpenInfo *info) {
+int open_stream(char *path, OpenInfo *info) {
     int ret = -1;
-    if (is_empty(path)) {
+    if (StringUtil::isEmpty(path)) {
         LOGE("传入的文件路劲为空");
         return ret;
     }
@@ -760,12 +761,12 @@ AVFrame *decode_image(OpenInfo *info) {
 }
 
 /*解析输入的图片，得到一帧Frame*/
-AVFrame *parse_image(const char *img_path) {
+AVFrame *parse_image(char *img_path) {
     AVFrame *yuv_frame = nullptr;
-    if (is_empty(img_path)) {
+    if (StringUtil::isEmpty(img_path)) {
         return nullptr;
     }
-    OpenInfo open_info = {0};
+    OpenInfo open_info;
 
     if (open_stream(img_path, &open_info) < 0) {
         goto end;
@@ -807,4 +808,20 @@ Java_com_wyl_ffmpegtest_MainActivity_testParse(JNIEnv *env, jobject thiz) {
     } else {
         LOGE("parse_image 返回的Frame为width:%i, height:%i", frame->width, frame->height);
     }
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_wyl_ffmpegtest_MainActivity_parseImageInfo(JNIEnv *env, jobject thiz, jstring jpath) {
+    char *path = const_cast<char *>(env->GetStringUTFChars(jpath, JNI_FALSE));
+
+    Image image;
+    int ret = image.prase(path);
+    if (ret < 0) {
+        LOGE("解析图片失败");
+    } else {
+        LOGE("解析到的图片的宽：%i, 高：%i", image.w, image.h);
+    }
+
+    env->ReleaseStringUTFChars(jpath, path);
 }

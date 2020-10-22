@@ -64,7 +64,8 @@ public class MainActivity extends AppCompatActivity {
 
 //                        decodeImages();
 //                        testParse();
-                        makeMediaFile();
+//                        makeMediaFile();
+                        parseImageInfo("/sdcard/video_img/rank_title_bg1.png");
 
                     }
                 }, Manifest.permission.READ_EXTERNAL_STORAGE);
@@ -89,4 +90,6 @@ public class MainActivity extends AppCompatActivity {
     public native void decodeImages();
 
     public native void testParse();
+
+    public native void parseImageInfo(String path);
 }

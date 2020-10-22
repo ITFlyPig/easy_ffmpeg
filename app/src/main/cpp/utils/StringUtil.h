@@ -9,7 +9,9 @@ class StringUtil {
 
 public:
     //判断字符串是否为空
-    bool isEmpty(char * s);
+    static bool isEmpty(char * s);
+    //将jstring转为string
+
 };
 
 #endif //FFMPEGTEST_STRINGUTIL_H
