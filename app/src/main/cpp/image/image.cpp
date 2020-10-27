@@ -45,6 +45,17 @@ int Image::prase(char* path) {
     return ret;
 }
 
-int Image::toYuv420p(AVFrame *out) {
+
+int Image::toYuv420p(AVFrame **out) {
+    int ret = -1;
+    const char* tag = "toYuv420p";
+    if (StringUtil::isEmpty(path)) {
+        LOGE("%s 错误：图片路劲path为空", tag);
+        return ret;
+    }
+
+
     return 0;
 }
+
+

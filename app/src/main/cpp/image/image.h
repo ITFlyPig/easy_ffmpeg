@@ -6,15 +6,18 @@
 #define FFMPEGTEST_IMAGE_H
 
 #include <string>
-//#include "../utils/StringUtil.h"
 #include "StringUtil.h"
 #include "log.h"
+
+extern "C" {
+#include "libavformat/avformat.h"
+};
 
 using namespace std;
 
 class Image {
 public:
-    string path;  //图片文件的路劲
+    char* path;  //图片文件的路劲
     int w;        //图片的宽
     int h;        //图片的高
 
@@ -23,7 +26,7 @@ public:
     int prase(char *path);
 
     //将一张图片解码，然后转为Yuv420p格式的Frame
-    int toYuv420p(AVFrame *out);
+    int toYuv420p(AVFrame **out);
 
 };
 
