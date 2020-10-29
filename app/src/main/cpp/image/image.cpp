@@ -11,19 +11,19 @@ int Image::prase(char* path) {
     int ret = -1;
     AVFormatContext *c = nullptr;
     if (StringUtil::isEmpty(path)) {
-        LOGE("%s 解析图片失败：图片路劲为空", tag.c_str());
+        LOGE(TAG, "%s 解析图片失败：图片路劲为空", tag.c_str());
         return ret;
     }
     /*创建流，读取文件头，流必须使用avformat_close_input关闭*/
     ret = avformat_open_input(&c, path, NULL, NULL);
     if (ret < 0) {
-        LOGE("%s 文件打开失败：%s",tag.c_str(), av_err2str(ret));
+        LOGE(TAG, "%s 文件打开失败：%s",tag.c_str(), av_err2str(ret));
         return ret;
     }
     /*通过读取packets获得流相关的信息，这个方法对于没有header的媒体文件特别有用，读取到的packets会被缓存后续使用。*/
     ret = avformat_find_stream_info(c, NULL);
     if (ret < 0) {
-        LOGE("%s avformat_find_stream_info 获取流信息失败", tag.c_str());
+        LOGE(TAG, "%s avformat_find_stream_info 获取流信息失败", tag.c_str());
         goto __end;
     }
     //找到video stream
@@ -37,7 +37,7 @@ int Image::prase(char* path) {
         }
     }
     if (ret < 0) {
-        LOGD("%s 未找到图片宽高等信息", tag.c_str());
+        LOGD(TAG, "%s 未找到图片宽高等信息", tag.c_str());
     }
 
     __end:
@@ -50,7 +50,7 @@ int Image::toYuv420p(AVFrame **out) {
     int ret = -1;
     const char* tag = "toYuv420p";
     if (StringUtil::isEmpty(path)) {
-        LOGE("%s 错误：图片路劲path为空", tag);
+        LOGE(TAG, "%s 错误：图片路劲path为空", tag);
         return ret;
     }
 

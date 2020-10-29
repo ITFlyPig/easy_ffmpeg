@@ -17,6 +17,7 @@ using namespace std;
 
 class Image {
 public:
+    const char *TAG = "Image";
     char* path;  //图片文件的路劲
     int w;        //图片的宽
     int h;        //图片的高

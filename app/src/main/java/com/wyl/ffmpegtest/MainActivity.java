@@ -3,11 +3,16 @@ package com.wyl.ffmpegtest;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.Manifest;
+import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Surface;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
 import android.view.View;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.wyl.ffmpegtest.permission.PermissionListener;
 import com.wyl.ffmpegtest.permission.PermissionRequestUtil;
@@ -15,7 +20,7 @@ import com.wyl.ffmpegtest.permission.PermissionRequestUtil;
 import java.io.File;
 import java.io.IOException;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
     // Used to load the 'native-lib' library on application startup.
     static {
@@ -23,6 +28,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public static final String TAG = MainActivity.class.getName();
+
+    private TextView tvOpenGlEGLShow;
+    private SurfaceView surfaceView;
+    private Surface surface;
 
 
     @Override
@@ -32,6 +41,24 @@ public class MainActivity extends AppCompatActivity {
 
         // Example of a call to a native method
         TextView tv = findViewById(R.id.sample_text);
+        surfaceView = findViewById(R.id.surface);
+        surfaceView.getHolder().addCallback(new SurfaceHolder.Callback() {
+            @Override
+            public void surfaceCreated(SurfaceHolder holder) {
+                surface = holder.getSurface();
+
+            }
+
+            @Override
+            public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+
+            }
+
+            @Override
+            public void surfaceDestroyed(SurfaceHolder holder) {
+
+            }
+        });
         tv.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -71,9 +98,11 @@ public class MainActivity extends AppCompatActivity {
                 }, Manifest.permission.READ_EXTERNAL_STORAGE);
 
 
-
             }
         });
+
+        tvOpenGlEGLShow = findViewById(R.id.tv_opengl_egl_show);
+        tvOpenGlEGLShow.setOnClickListener(this);
     }
 
     /**
@@ -92,4 +121,23 @@ public class MainActivity extends AppCompatActivity {
     public native void testParse();
 
     public native void parseImageInfo(String path);
+
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()) {
+            case R.id.tv_opengl_egl_show:
+                if (surface == null) {
+                    Toast.makeText(this, "surface为空", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                //解析得到Bitmap
+                Bitmap bitmap = BitmapFactory.decodeResource(getResources(), R.mipmap.bg_english_ability_test);
+                renderBitmap(surface, bitmap);
+                break;
+            default:
+                break;
+        }
+    }
+
+    public native void renderBitmap(Surface surface, Bitmap bitmap);
 }

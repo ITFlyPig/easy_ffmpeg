@@ -5,9 +5,18 @@
 #include <cstdio>
 #include <cmath>
 #include <locale>
+//#include <thread>
+#include <unistd.h>
+#include <android/native_window.h>
+#include <android/native_window_jni.h>
+#include <android/bitmap.h>
+#include <thread>
 
 #include "log/log.h"
 #include "image.h"
+
+#include "GLRender.h"
+#include "egl/egl_core.h"
 
 #define STREAM_DURATION   10.0
 #define SCALE_FLAGS SWS_BICUBIC
@@ -63,7 +72,7 @@ void add_stream(OutputStream *ost, AVFormatContext *oc,
     //据id找到编码器
     *codec = avcodec_find_encoder(codec_id);
     if (!(*codec)) {
-        LOGE("Could not find encoder for '%s'\n", avcodec_get_name(codec_id));
+        LOGE(TAG, "Could not find encoder for '%s'\n", avcodec_get_name(codec_id));
         exit(1);
     }
 
@@ -71,7 +80,7 @@ void add_stream(OutputStream *ost, AVFormatContext *oc,
     ost->st = avformat_new_stream(oc, NULL);
 
     if (!ost->st) {
-        LOGE("Could not allocate stream");
+        LOGE(TAG, "Could not allocate stream");
         exit(1);
     }
     //设置流的id
@@ -79,7 +88,7 @@ void add_stream(OutputStream *ost, AVFormatContext *oc,
     //创建编码器上下文
     c = avcodec_alloc_context3(*codec);
     if (!c) {
-        LOGE("Could not alloc an encoding context");
+        LOGE(TAG, "Could not alloc an encoding context");
         exit(1);
     }
     //将编码器上下文记录下来
@@ -132,7 +141,7 @@ AVFrame *alloc_picture(enum AVPixelFormat pix_fmt, int width, int height) {
     /* allocate the buffers for the frame data */
     ret = av_frame_get_buffer(picture, 0);
     if (ret < 0) {
-        LOGE("Could not allocate frame data");
+        LOGE(TAG, "Could not allocate frame data");
         exit(1);
     }
 
@@ -152,7 +161,7 @@ void open_video(AVFormatContext *oc, AVCodec *codec, OutputStream *ost, AVDictio
     ret = avcodec_open2(c, codec, &opt);
     av_dict_free(&opt);
     if (ret < 0) {
-        LOGE("Could not open video codec: %s\n", av_err2str(ret));
+        LOGE(TAG, "Could not open video codec: %s\n", av_err2str(ret));
         exit(1);
     }
 
@@ -171,7 +180,7 @@ void open_video(AVFormatContext *oc, AVCodec *codec, OutputStream *ost, AVDictio
     if (c->pix_fmt != AV_PIX_FMT_YUV420P) {
         ost->tmp_frame = alloc_picture(AV_PIX_FMT_YUV420P, c->width, c->height);
         if (!ost->tmp_frame) {
-            LOGE("Could not allocate temporary picture");
+            LOGE(TAG, "Could not allocate temporary picture");
             exit(1);
         }
     }
@@ -179,7 +188,7 @@ void open_video(AVFormatContext *oc, AVCodec *codec, OutputStream *ost, AVDictio
     /* copy the stream parameters to the muxer */
     ret = avcodec_parameters_from_context(ost->st->codecpar, c);
     if (ret < 0) {
-        LOGE("Could not copy the stream parameters");
+        LOGE(TAG, "Could not copy the stream parameters");
         exit(1);
     }
 }
@@ -265,7 +274,7 @@ AVFrame *get_video_frame(OutputStream *ost) {
     //申请内存，存放图片的地址
     char *img_path = static_cast<char *>(malloc(1024));
     get_img_path(img_path);
-    LOGE("将要解析的图片的地址：%s", img_path);
+    LOGE(TAG, "将要解析的图片的地址：%s", img_path);
     ost->frame = parse_image(img_path);
     //释放内存
     free(img_path);
@@ -279,7 +288,8 @@ AVFrame *get_video_frame(OutputStream *ost) {
 void log_packet(const AVFormatContext *fmt_ctx, const AVPacket *pkt) {
     AVRational *time_base = &fmt_ctx->streams[pkt->stream_index]->time_base;
 
-    LOGE("pts:%s pts_time:%s dts:%s dts_time:%s duration:%s duration_time:%s stream_index:%d\n",
+    LOGE(TAG,
+         "pts:%s pts_time:%s dts:%s dts_time:%s duration:%s duration_time:%s stream_index:%d\n",
          av_ts2str(pkt->pts), av_ts2timestr(pkt->pts, time_base),
          av_ts2str(pkt->dts), av_ts2timestr(pkt->dts, time_base),
          av_ts2str(pkt->duration), av_ts2timestr(pkt->duration, time_base),
@@ -293,7 +303,7 @@ int write_frame(AVFormatContext *fmt_ctx, AVCodecContext *c,
     // send the frame to the encoder
     ret = avcodec_send_frame(c, frame);
     if (ret < 0) {
-        LOGE("Error sending a frame to the encoder: %s\n", av_err2str(ret));
+        LOGE(TAG, "Error sending a frame to the encoder: %s\n", av_err2str(ret));
         exit(1);
     }
 
@@ -304,7 +314,7 @@ int write_frame(AVFormatContext *fmt_ctx, AVCodecContext *c,
         if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
             break;
         else if (ret < 0) {
-            LOGE("Error encoding a frame: %s\n", av_err2str(ret));
+            LOGE(TAG, "Error encoding a frame: %s\n", av_err2str(ret));
         }
 
         /* rescale output packet timestamp values from codec to stream timebase */
@@ -365,11 +375,11 @@ Java_com_wyl_ffmpegtest_MainActivity_makeMediaFile(JNIEnv *env, jobject thiz) {
 
     avformat_alloc_output_context2(&oc, fmt, NULL, filename);
     if (!oc) {
-        LOGE("avformat_alloc_output_context2 失败，使用MPEG格式");
+        LOGE(TAG, "avformat_alloc_output_context2 失败，使用MPEG格式");
         avformat_alloc_output_context2(&oc, fmt, "mpeg", filename);
     }
     if (!oc) {
-        LOGE("avformat_alloc_output_context2 失败，使用MPEG格式也失败");
+        LOGE(TAG, "avformat_alloc_output_context2 失败，使用MPEG格式也失败");
         return;
     }
 
@@ -377,7 +387,7 @@ Java_com_wyl_ffmpegtest_MainActivity_makeMediaFile(JNIEnv *env, jobject thiz) {
     fmt = oc->oformat;
 
     if (fmt->video_codec != AV_CODEC_ID_NONE) {
-        LOGE("输出有编码器，创建stream和初始化编码器codec");
+        LOGE(TAG, "输出有编码器，创建stream和初始化编码器codec");
         add_stream(&video_st, oc, &video_codec, fmt->video_codec);
         have_video = 1;
         encode_video = 1;
@@ -392,7 +402,7 @@ Java_com_wyl_ffmpegtest_MainActivity_makeMediaFile(JNIEnv *env, jobject thiz) {
     if (!(fmt->flags & AVFMT_NOFILE)) {
         ret = avio_open(&oc->pb, output_file_path, AVIO_FLAG_READ_WRITE);
         if (ret < 0) {
-            LOGE("Could not open '%s': %s\n", filename,
+            LOGE(TAG, "Could not open '%s': %s\n", filename,
                  av_err2str(ret));
             exit(1);
         }
@@ -401,7 +411,7 @@ Java_com_wyl_ffmpegtest_MainActivity_makeMediaFile(JNIEnv *env, jobject thiz) {
     /* Write the stream header, if any. */
     ret = avformat_write_header(oc, &opt);
     if (ret < 0) {
-        LOGE("Error occurred when opening output file: %s\n",
+        LOGE(TAG, "Error occurred when opening output file: %s\n",
              av_err2str(ret));
         exit(1);
     }
@@ -434,7 +444,7 @@ void save_one_frame(AVFrame *frame) {
     const char *out_file = "/data/user/0/com.wyl.ffmpegtest/files/test.rgb";
     FILE *fd = fopen(out_file, "wb+");
     if (fd == NULL) {
-        LOGE("文件打开失败：%s", strerror(errno));
+        LOGE(TAG, "文件打开失败：%s", strerror(errno));
         return;
     }
     fwrite(frame->data[0], 1, frame->linesize[0] * frame->height, fd);
@@ -465,7 +475,7 @@ Java_com_wyl_ffmpegtest_MainActivity_decodeImages(JNIEnv *env, jobject thiz) {
     //打开文件，创建一个流，读取文件头
     ret = avformat_open_input(&c, in_img_path, NULL, NULL);
     if (ret < 0) {
-        LOGE("文件打开失败：%s", av_err2str(ret));
+        LOGE(TAG, "文件打开失败：%s", av_err2str(ret));
         return;
     }
     //通过读取packets获得流相关的信息，这个方法对于没有header的媒体文件特别有用，读取到的packets会被缓存后续使用。
@@ -484,38 +494,38 @@ Java_com_wyl_ffmpegtest_MainActivity_decodeImages(JNIEnv *env, jobject thiz) {
         }
     }
     if (video_index == -1) {
-        LOGE("未找到视频流");
+        LOGE(TAG, "未找到视频流");
         return;
     }
     //据id找找到解码器
-    LOGE("解码器ID：%i  %i", dec_codec_id, AV_CODEC_ID_PNG);
+    LOGE(TAG, "解码器ID：%i  %i", dec_codec_id, AV_CODEC_ID_PNG);
     dec_codec = avcodec_find_decoder(dec_codec_id);
 
 
     if (dec_codec == NULL) {
-        LOGE("未找到解码器");
+        LOGE(TAG, "未找到解码器");
         return;
     }
     //创建解码上下文，初始化解码器默认值
     dec_codec_ctx = avcodec_alloc_context3(dec_codec);
     if (dec_codec_ctx == NULL) {
-        LOGE("解码器上下文创建失败");
+        LOGE(TAG, "解码器上下文创建失败");
         return;
     }
 
     //使用支持的解码器参数填充 解码器上下文
     ret = avcodec_parameters_to_context(dec_codec_ctx, c->streams[video_index]->codecpar);
     if (ret < 0) {
-        LOGE("Failed to copy decoder parameters to input decoder context：%s", av_err2str(ret));
+        LOGE(TAG, "Failed to copy decoder parameters to input decoder context：%s", av_err2str(ret));
         goto __end;
     }
 
-    LOGE("解码器的名字：%s, 像素格式：%i", dec_codec->name, dec_codec_ctx->pix_fmt);
+    LOGE(TAG, "解码器的名字：%s, 像素格式：%i", dec_codec->name, dec_codec_ctx->pix_fmt);
 
     //打开解码器:Initialize the AVCodecContext to use the given AVCodec.
     ret = avcodec_open2(dec_codec_ctx, dec_codec, NULL);
     if (ret < 0) {
-        LOGE("Failed to open decoder for stream");
+        LOGE(TAG, "Failed to open decoder for stream");
         goto __end;
     }
     w = dec_codec_ctx->width;
@@ -527,13 +537,13 @@ Java_com_wyl_ffmpegtest_MainActivity_decodeImages(JNIEnv *env, jobject thiz) {
     //申请Packet容器
     packet = av_packet_alloc();
     if (packet == NULL) {
-        LOGE("申请packet失败");
+        LOGE(TAG, "申请packet失败");
         goto __end;
     }
 
     frame = av_frame_alloc();
     if (frame == NULL) {
-        LOGE("申请packet失败");
+        LOGE(TAG, "申请packet失败");
         goto __end1;
     }
     av_init_packet(packet);
@@ -542,29 +552,29 @@ Java_com_wyl_ffmpegtest_MainActivity_decodeImages(JNIEnv *env, jobject thiz) {
                              dec_codec_ctx->width, dec_codec_ctx->height, AV_PIX_FMT_YUV420P,
                              SWS_FAST_BILINEAR, NULL, NULL, NULL);
     if (sws_cxt == NULL) {
-        LOGE("获取SwsContext失败");
+        LOGE(TAG, "获取SwsContext失败");
         goto __end2;
     }
 
     while (av_read_frame(c, packet) == 0) {
-        LOGE("packet size:%5d", packet->size);
+        LOGE(TAG, "packet size:%5d", packet->size);
         int got_frame = -1;
         int size = avcodec_decode_video2(dec_codec_ctx, frame, &got_frame, packet);
-        LOGE("解码的字节数：%d, linesize[0]:%d", size, frame->linesize[0]);
+        LOGE(TAG, "解码的字节数：%d, linesize[0]:%d", size, frame->linesize[0]);
         if (size < 0) {
-            LOGE("解码Packet错误：%s", av_err2str(size));
+            LOGE(TAG, "解码Packet错误：%s", av_err2str(size));
             goto __end2;
         }
 
         yuv_frame = alloc_picture(AV_PIX_FMT_YUV420P, frame->width, frame->height);
         if (yuv_frame == NULL) {
-            LOGE("申请转换后的yuv存储Frame失败");
+            LOGE(TAG, "申请转换后的yuv存储Frame失败");
             goto __end2;
         }
         //将rgb转为yuv420p
         ret = sws_scale(sws_cxt, frame->data, frame->linesize, 0, frame->height, yuv_frame->data,
                         yuv_frame->linesize);
-        LOGE("转换后的slice height为：%i", ret);
+        LOGE(TAG, "转换后的slice height为：%i", ret);
 
         //生成视频
         Java_com_wyl_ffmpegtest_MainActivity_makeMediaFile(NULL, NULL);
@@ -616,7 +626,7 @@ bool is_empty(const char *s) {
 int open_stream(char *path, OpenInfo *info) {
     int ret = -1;
     if (StringUtil::isEmpty(path)) {
-        LOGE("传入的文件路劲为空");
+        LOGE(TAG, "传入的文件路劲为空");
         return ret;
     }
 
@@ -625,13 +635,13 @@ int open_stream(char *path, OpenInfo *info) {
     /*创建流，读取文件头，流必须使用avformat_close_input关闭*/
     ret = avformat_open_input(&c, path, NULL, NULL);
     if (ret < 0) {
-        LOGE("文件打开失败：%s", av_err2str(ret));
+        LOGE(TAG, "文件打开失败：%s", av_err2str(ret));
         return ret;
     }
     //通过读取packets获得流相关的信息，这个方法对于没有header的媒体文件特别有用，读取到的packets会被缓存后续使用。
     ret = avformat_find_stream_info(c, NULL);
     if (ret < 0) {
-        LOGE(" avformat_find_stream_info 获取流信息失败");
+        LOGE(TAG, " avformat_find_stream_info 获取流信息失败");
         return ret;
     }
 
@@ -644,7 +654,7 @@ int open_stream(char *path, OpenInfo *info) {
         }
     }
     if (video_index == -1) {
-        LOGE("未找到视频流");
+        LOGE(TAG, "未找到视频流");
     }
     info->video_index = video_index;
     info->c = c;
@@ -661,30 +671,30 @@ int find_and_open_decoder(OpenInfo *info) {
     //据id找找到解码器
     AVCodecParameters *codecpar = info->c->streams[info->video_index]->codecpar;
     AVCodecID codec_id = codecpar->codec_id;
-    LOGE("找到解码器ID：%i， AV_CODEC_ID_PNG解码器的id： %i", codec_id, AV_CODEC_ID_PNG);
+    LOGE(TAG, "找到解码器ID：%i， AV_CODEC_ID_PNG解码器的id： %i", codec_id, AV_CODEC_ID_PNG);
     codec = avcodec_find_decoder(codec_id);
     if (codec == nullptr) {
-        LOGE("未找到解码器");
+        LOGE(TAG, "未找到解码器");
         return ret;
     }
     //创建解码上下文，初始化解码器默认值，必须使用avcodec_free_context释放
     codec_cxt = avcodec_alloc_context3(codec);
     if (codec_cxt == NULL) {
-        LOGE("解码器上下文创建失败");
+        LOGE(TAG, "解码器上下文创建失败");
         return ret;
     }
     //使用支持的解码器参数 填充 解码器上下文
     ret = avcodec_parameters_to_context(codec_cxt, codecpar);
     if (ret < 0) {
-        LOGE("Failed to copy decoder parameters to input decoder context：%s", av_err2str(ret));
+        LOGE(TAG, "Failed to copy decoder parameters to input decoder context：%s", av_err2str(ret));
         return ret;
     }
 
-    LOGE("解码器的名字：%s, 媒体文件像素格式：%i", codec->name, codec_cxt->pix_fmt);
+    LOGE(TAG, "解码器的名字：%s, 媒体文件像素格式：%i", codec->name, codec_cxt->pix_fmt);
     //打开解码器:Initialize the AVCodecContext to use the given AVCodec.
     ret = avcodec_open2(codec_cxt, codec, nullptr);
     if (ret < 0) {
-        LOGE("Failed to open decoder for stream");
+        LOGE(TAG, "Failed to open decoder for stream");
     }
     info->codec = codec;
     info->codec_ctx = codec_cxt;
@@ -706,14 +716,14 @@ AVFrame *decode_image(OpenInfo *info) {
     //申请Packet容器
     packet = av_packet_alloc();
     if (packet == nullptr) {
-        LOGE("申请packet失败");
+        LOGE(TAG, "申请packet失败");
         return nullptr;
     }
     av_init_packet(packet);
 
     frame = av_frame_alloc();
     if (frame == nullptr) {
-        LOGE("申请packet失败");
+        LOGE(TAG, "申请packet失败");
         goto end;
     }
 
@@ -721,29 +731,29 @@ AVFrame *decode_image(OpenInfo *info) {
                              codec_ctx->width, codec_ctx->height, out_pix_fmt,
                              SWS_FAST_BILINEAR, NULL, NULL, NULL);
     if (sws_cxt == nullptr) {
-        LOGE("获取SwsContext失败");
+        LOGE(TAG, "获取SwsContext失败");
         goto end;
     }
 
     while (av_read_frame(info->c, packet) == 0) {
-        LOGE("读取到的packet size:%5d", packet->size);
+        LOGE(TAG, "读取到的packet size:%5d", packet->size);
         int got_frame = -1;
         int size = avcodec_decode_video2(codec_ctx, frame, &got_frame, packet);
-        LOGE("解码得到的的字节数：%d, linesize[0]:%d", size, frame->linesize[0]);
+        LOGE(TAG, "解码得到的的字节数：%d, linesize[0]:%d", size, frame->linesize[0]);
         if (size < 0) {
-            LOGE("解码Packet错误：%s", av_err2str(size));
+            LOGE(TAG, "解码Packet错误：%s", av_err2str(size));
             goto end;
         }
 
         yuv_frame = alloc_picture(out_pix_fmt, frame->width, frame->height);
         if (yuv_frame == NULL) {
-            LOGE("申请转换后的yuv存储Frame失败");
+            LOGE(TAG, "申请转换后的yuv存储Frame失败");
             goto end;
         }
         //将rgb转为yuv420p
         ret = sws_scale(sws_cxt, frame->data, frame->linesize, 0, frame->height, yuv_frame->data,
                         yuv_frame->linesize);
-        LOGE("转换的slice height为：%i", ret);
+        LOGE(TAG, "转换的slice height为：%i", ret);
     }
 
     end:
@@ -804,9 +814,9 @@ Java_com_wyl_ffmpegtest_MainActivity_testParse(JNIEnv *env, jobject thiz) {
     AVFrame *frame;
     frame = parse_image("sdcard/img_video_1.png");
     if (frame == nullptr) {
-        LOGE("parse_image 返回的Frame为空");
+        LOGE(TAG, "parse_image 返回的Frame为空");
     } else {
-        LOGE("parse_image 返回的Frame为width:%i, height:%i", frame->width, frame->height);
+        LOGE(TAG, "parse_image 返回的Frame为width:%i, height:%i", frame->width, frame->height);
     }
 }
 
@@ -818,10 +828,94 @@ Java_com_wyl_ffmpegtest_MainActivity_parseImageInfo(JNIEnv *env, jobject thiz, j
     Image image;
     int ret = image.prase(path);
     if (ret < 0) {
-        LOGE("解析图片失败");
+        LOGE(TAG, "解析图片失败");
     } else {
-        LOGE("解析到的图片的宽：%i, 高：%i", image.w, image.h);
+        LOGE(TAG, "解析到的图片的宽：%i, 高：%i", image.w, image.h);
     }
 
     env->ReleaseStringUTFChars(jpath, path);
+}
+
+
+JavaVM *javaVM;
+
+
+void renderBitmap(std::shared_ptr<EglCore> egl, jobject surface, void *pixel, int w, int h) {
+    /* while (true) {
+
+         usleep(2000);
+     }*/
+    JNIEnv *env = nullptr;
+    if (javaVM->AttachCurrentThread(&env, NULL) != JNI_OK) {
+        LOGE(TAG, "AttachCurrentThread 错误");
+        return;
+    }
+    ANativeWindow *nativeWindow = ANativeWindow_fromSurface(env, surface);
+    if (nativeWindow == nullptr) {
+        LOGE(TAG, "ANativeWindow创建失败");
+        return;
+    }
+
+    /*初始化egl*/
+    egl->Init(NULL);
+    EGLSurface eglSurface = egl->CreateWindSurface(nativeWindow);
+    if (eglSurface == NULL) {
+        LOGE(TAG, "创建EGLSurface失败");
+        return;
+    }
+    egl->MakeCurrent(eglSurface);
+
+    /*开始使用opengl*/
+    CGLRender *cglRender = new CGLRender();
+    /*创建opengl程序*/
+    cglRender->CreateProgram();
+    //创建和绑定纹理单元
+    cglRender->CreateAndBindTexture();
+    //绑定bitmap
+    cglRender->BindBitmap(pixel, w, h);
+    //绘制
+    cglRender->Draw();
+    //显示
+    egl->SwapBuffers(eglSurface);
+
+    delete cglRender;
+
+}
+
+void startBitmapRenderThread(jobject surface) {
+    //新建一个线程，在线程里完成Egl和OpenGL的初始化和绘制
+//    std::shared_ptr<EglCore> that(new EglCore());
+//    std::thread t(renderBitmap, that, surface);
+//    t.join();
+}
+
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_wyl_ffmpegtest_MainActivity_renderBitmap(JNIEnv *env, jobject thiz, jobject sf,
+                                                  jobject bitmap) {
+    env->GetJavaVM(&javaVM);
+//    startBitmapRenderThread(sf);
+    std::shared_ptr<EglCore> that(new EglCore());
+    AndroidBitmapInfo bitmapInfo;
+    void *pixel = nullptr;
+    int ret = 0;
+    ret = AndroidBitmap_getInfo(env, bitmap, &bitmapInfo);
+    if (ret < 0) {
+        LOGE(TAG, "获取Bitmap信息失败");
+        return;
+    }
+    if (bitmapInfo.format != ANDROID_BITMAP_FORMAT_RGBA_8888) {
+        LOGE(TAG, "无效的Bitmap格式");
+        return;
+    }
+    ret = AndroidBitmap_lockPixels(env, bitmap, &pixel);
+    if (ret < 0) {
+        LOGE(TAG, "获取Bitmap像素数据失败");
+        return;
+    }
+
+    renderBitmap(that, sf, pixel, bitmapInfo.width, bitmapInfo.height);
+
+    AndroidBitmap_unlockPixels(env, bitmap);
 }

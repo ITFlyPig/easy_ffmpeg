@@ -35,6 +35,16 @@ FILE(GLOB LOG_H ${JNI_PATH}/log)
 FILE(GLOB UTILS_CPP ${JNI_PATH}/utils/*.cpp)
 FILE(GLOB UTILS_H ${JNI_PATH}/utils)
 
+#opengl
+FILE(GLOB GL_CPP ${JNI_PATH}/opengl/*.cpp)
+FILE(GLOB GL_H ${JNI_PATH}/opengl)
+#常量
+FILE(GLOB CONSTANT_H ${JNI_PATH}/constant)
+FILE(GLOB CONSTANT_CPP ${JNI_PATH}/constant/*.cpp)
+
+#egl
+FILE(GLOB EGL_H ${JNI_PATH}/egl)
+FILE(GLOB EGL_CPP ${JNI_PATH}/egl/*.cpp)
 
 #======================加载头文件===================
 include_directories(${JNI_H})
@@ -48,6 +58,13 @@ include_directories(${LOG_H})
 include_directories(${IMAGE_H})
 #utils
 include_directories(${UTILS_H})
+#opengl
+include_directories(${GL_H})
+#常量
+include_directories(${CONSTANT_H})
+#EGL_H
+include_directories(${CONSTANT_H})
+
 
 
 #======================加载库文件===================
@@ -77,7 +94,10 @@ add_library(native-lib SHARED
         ${VIDEO_CPP}
         ${LOG_CPP}
         ${IMAGE_CPP}
-        ${UTILS_CPP})
+        ${UTILS_CPP}
+        ${GL_CPP}
+        ${CONSTANT_CPP}
+        ${EGL_CPP})
 
 #找到系统提供的库
 find_library(log-lib log)
@@ -91,6 +111,13 @@ target_link_libraries(
         avutil
         swresample
         swscale
+
+        -landroid
+        OpenSLES
+        -lEGL
+        -lGLESv2
+        #解析Java传递过来的Bitmap需要
+        jnigraphics
 
         # Links the target library to the log library
         # included in the NDK.

@@ -12,6 +12,6 @@ void FFLog::log_callback_android(void *ptr, int level, const char *fmt, va_list 
     av_log_format_line(ptr, level, fmt, vl2, line, 128, &print_prefix);
     va_end(vl2);
     line[127] = '\0';
-    LOGE("%s", line);
+    LOGE(TAG, "%s", line);
     free(line);
 }
