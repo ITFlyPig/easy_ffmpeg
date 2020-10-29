@@ -3,6 +3,12 @@
 // Created by cxp on 2019-08-05.
 //
 
+/*
+ *
+ * EGL的使用步骤：1、
+ *
+ * */
+
 #ifndef LEARNVIDEO_EGL_CORE_H
 #define LEARNVIDEO_EGL_CORE_H
 

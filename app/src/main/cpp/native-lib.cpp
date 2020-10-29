@@ -858,6 +858,7 @@ void renderBitmap(std::shared_ptr<EglCore> egl, jobject surface, void *pixel, in
 
     /*初始化egl*/
     egl->Init(NULL);
+    //将EGL和本地的渲染窗口建立连接
     EGLSurface eglSurface = egl->CreateWindSurface(nativeWindow);
     if (eglSurface == NULL) {
         LOGE(TAG, "创建EGLSurface失败");
@@ -866,7 +867,7 @@ void renderBitmap(std::shared_ptr<EglCore> egl, jobject surface, void *pixel, in
     egl->MakeCurrent(eglSurface);
 
     /*开始使用opengl*/
-    CGLRender *cglRender = new CGLRender();
+    GLRender *cglRender = new GLRender();
     /*创建opengl程序*/
     cglRender->CreateProgram();
     //创建和绑定纹理单元

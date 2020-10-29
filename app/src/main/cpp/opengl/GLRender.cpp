@@ -4,11 +4,11 @@
 
 #include "GLRender.h"
 
-void CGLRender::Release() {
+void GLRender::Release() {
 
 }
 
-int CGLRender::Init() {
+int GLRender::Init() {
     int ret = 0;
     if (m_eInitStatus == SUCCESS) {
         LOGE(TAG, "GL已经初始化, 不用再吃初始化");
@@ -24,7 +24,7 @@ int CGLRender::Init() {
     return RET_SUCCESS;
 }
 
-GLint CGLRender::__LoadShader(GLenum type, const GLchar *pShaderCode) {
+GLint GLRender::__LoadShader(GLenum type, const GLchar *pShaderCode) {
     //据type创建定点着色器或者片元着色器
     GLint shader = glCreateShader(type);
     //将代码加载到着色器中
@@ -53,7 +53,7 @@ GLint CGLRender::__LoadShader(GLenum type, const GLchar *pShaderCode) {
 }
 
 
-int CGLRender::CreateProgram() {
+int GLRender::CreateProgram() {
     if (m_nProgramId == 0) {
         m_nProgramId = glCreateProgram();
         if (m_nProgramId == 0 || glGetError() != GL_NO_ERROR) {
@@ -108,7 +108,7 @@ int CGLRender::CreateProgram() {
     return RET_SUCCESS;
 }
 
-int CGLRender::CreateAndBindTexture() {
+int GLRender::CreateAndBindTexture() {
     //创建纹理
     if (m_nTextureId == 0) {
         glGenTextures(1, &m_nTextureId);
@@ -141,14 +141,14 @@ int CGLRender::CreateAndBindTexture() {
     return RET_SUCCESS;
 }
 
-void CGLRender::checkGlError(const char *op) {
+void GLRender::checkGlError(const char *op) {
     for (GLint error = glGetError(); error; error = glGetError()) {
         LOGI(TAG, "after %s() glError (0x%x)\n", op, error);
     }
 
 }
 
-int CGLRender::BindBitmap(void *pixels, int w, int h) {
+int GLRender::BindBitmap(void *pixels, int w, int h) {
     if (pixels == nullptr) {
         LOGE(TAG, "Bitmap像素数据为空");
         return RET_ERROR;
@@ -163,7 +163,7 @@ int CGLRender::BindBitmap(void *pixels, int w, int h) {
     return RET_SUCCESS;
 }
 
-void CGLRender::Draw() {
+void GLRender::Draw() {
     //启用顶点的句柄
     glEnableVertexAttribArray(m_nVertexPosLoc);
     glEnableVertexAttribArray(m_nVertexCoordLoc);

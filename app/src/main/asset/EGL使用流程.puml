@@ -1,0 +1,11 @@
+@startuml
+(*) --> "eglGetDisplay (display_id)\n获取显示设备"
+--> "eglInitialize (EGLDisplay dpy, EGLint *major, EGLint *minor)\n初始化EGL"
+--> "eglChooseConfig \n(EGLDisplay dpy, const EGLint *attrib_list, \nEGLConfig *configs, EGLint config_size, EGLint *num_config)\n返回所有满足用户所定义的特性的frame buffer的配置"
+--> "eglCreateContext \n(EGLDisplay dpy, EGLConfig config, EGLContext share_context, const EGLint *attrib_list)\n 创建context"
+--> "eglCreatePbufferSurface \n(EGLDisplay dpy, EGLConfig config, const EGLint *attrib_list)\n获取显存"
+--> "eglMakeCurrent (EGLDisplay dpy, EGLSurface draw, EGLSurface read, EGLContext ctx)\n设置当前的渲染环境"
+--> "opengl绘制"
+--> "eglSwapBuffers (EGLDisplay dpy, EGLSurface surface)\n显示绘制的内容"
+-->(*)
+@enduml

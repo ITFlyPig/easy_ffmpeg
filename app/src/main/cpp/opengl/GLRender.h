@@ -21,11 +21,11 @@ enum GL_INIT_STATUS {
 };
 
 //封装OpenGL相关的操作
-class CGLRender {
+class GLRender {
 private:
 
 
-    const char *TAG = "CGLRender";
+    const char *TAG = "GLRender";
     const GLfloat m_gVertexCoors[8] = {
             -1.0f, -1.0f,
             1.0f, -1.0f,
