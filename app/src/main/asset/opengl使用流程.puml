@@ -38,12 +38,13 @@ partition 绘制 {
 --> "glVertexAttribPointer (GLuint index, GLint size,
 GLenum type, GLboolean normalized, GLsizei stride, const void *pointer);
 对着色器中的属性赋值"
-}
 --> "glDrawArrays (GLenum mode, GLint first, GLsizei count);
 渲染"
 note left
    渲染之后有的并不能显示，
    需要调用EGL的eglSwapBuffers来显示
 end note
+}
+
 -->(*)
 @enduml
