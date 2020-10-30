@@ -27,7 +27,7 @@ int GLRender::Init() {
 GLint GLRender::__LoadShader(GLenum type, const GLchar *pShaderCode) {
     //据type创建定点着色器或者片元着色器
     GLint shader = glCreateShader(type);
-    //将代码加载到着色器中
+    //加载着色器代码
     glShaderSource(shader, 1, &pShaderCode, NULL);
     //编译代码
     glCompileShader(shader);
@@ -55,6 +55,7 @@ GLint GLRender::__LoadShader(GLenum type, const GLchar *pShaderCode) {
 
 int GLRender::CreateProgram() {
     if (m_nProgramId == 0) {
+        //创建一个空的程序对象，这个对象能被着色器shader附着(attached)
         m_nProgramId = glCreateProgram();
         if (m_nProgramId == 0 || glGetError() != GL_NO_ERROR) {
             LOGE(TAG, "glCreateProgram 错误：%x", glGetError());
@@ -94,7 +95,7 @@ int GLRender::CreateProgram() {
             }
             glDeleteProgram(m_nProgramId);
         }
-        //获取着色器程序中各个变量的位置
+        //获取编译好的着色器中的指定变量的位置
         m_nVertexCoordLoc = glGetAttribLocation(m_nProgramId, "aCoordinate");
         m_nVertexPosLoc = glGetAttribLocation(m_nProgramId, "aPosition");
         m_nTextureMatrixLoc = glGetUniformLocation(m_nProgramId, "uTexture");
@@ -102,6 +103,7 @@ int GLRender::CreateProgram() {
     }
     //程序创建成功
     if (m_nProgramId != 0) {
+        //将程序对象安装为当前的渲染状态的一部分
         glUseProgram(m_nProgramId);
         LOGE(TAG, "着色器程序创建成功");
     }
@@ -124,7 +126,7 @@ int GLRender::CreateAndBindTexture() {
     //绑定纹理单元到纹理id
     glBindTexture(GL_TEXTURE_2D, m_nTextureId);
     checkGlError("glBindTexture");
-    //将激活的纹理单元传递到着色器
+    //
     glUniform1i(m_nTextureMatrixLoc ,0);
     checkGlError("glUniform1i");
     //配置边缘过度参数
@@ -153,6 +155,7 @@ int GLRender::BindBitmap(void *pixels, int w, int h) {
         LOGE(TAG, "Bitmap像素数据为空");
         return RET_ERROR;
     }
+    //使用图像更新一个2d纹理
     glTexImage2D(GL_TEXTURE_2D, 0, // level一般为0
                  GL_RGBA, //纹理内部格式
                  w, h, // 画面宽高
