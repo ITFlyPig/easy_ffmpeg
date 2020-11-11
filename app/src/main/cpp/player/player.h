@@ -1,0 +1,52 @@
+//
+// Created by wangyuelin on 2020/11/11.
+//
+
+#ifndef FFMPEGTEST_PLAYER_H
+#define FFMPEGTEST_PLAYER_H
+
+#include <pthread.h>
+#include <log.h>
+#include "StringUtil.h"
+#include "Ogl.h"
+#include "Egl.h"
+#include <constant.h>
+
+#endif //FFMPEGTEST_PLAYER_H
+
+class Player {
+
+
+private:
+    AVFormatContext *c = nullptr;
+//视频流的索引
+    int videoIndex = -1;
+//文件路劲
+
+    AVCodecID codecId;//解码器id
+    AVCodec *codec = NULL;
+    AVCodecContext *codecCxt = NULL;
+
+    pthread_t pthread;
+
+    int m_nDstWidth = 0;//目标视频宽度
+    int m_nDstHeight = 0;//目标视频高度
+    AVPixelFormat m_DstFmt = AV_PIX_FMT_RGBA;//目标格式
+    Opengl *opengl;
+    Egl *egl;
+
+public:
+    char *path;
+
+public:
+
+    void newThread(char *path);
+
+    int open(char *path);
+
+    int decode();
+
+    static void *openVideo(void *player);
+
+    AVFrame *alloc_picture(enum AVPixelFormat pix_fmt, int width, int height);
+};

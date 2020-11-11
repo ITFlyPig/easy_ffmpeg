@@ -1,13 +1,48 @@
 //
-// Created by wangyuelin on 2020/10/21.
+// Created by wangyuelin on 2020/11/11.
 //
 
 
-#include "video.h"
+#include "player.h"
 
-char *Video::TAG = "Video";
+static const int ERROR = -1;
+static const int SUCCESS = 0;
 
-int Video::Open() {
+void *Player::openVideo(void *player) {
+    Player *pPlayer = static_cast<Player *>(player);
+    int ret = -1;
+    //打开视频，初始化ffmpeg
+    ret = pPlayer->open(pPlayer->path);
+    if (ret < 0) {
+        LOGE(TAG, "open视频打开失败");
+        return (void *) ERROR;
+    }
+    //初始化Egl
+    pPlayer->egl = new Egl();
+    if (pPlayer->egl->open(nullptr) < 0) {
+        LOGE(TAG, "Egl初始化失败");
+        return (void *) ERROR;
+    }
+    //初始化OpenGL
+    pPlayer->opengl = new Opengl();
+    if (!pPlayer->opengl->CreateProgram()) {
+        LOGE(TAG, "OpenGL 初始化失败");
+        return (void *) ERROR;
+    }
+    //egl和OpenGL都准备好了，开始解码
+    pPlayer->decode();
+    return reinterpret_cast<void *>(1);
+
+}
+
+void Player::newThread(char *path) {
+    this->path = path;
+    av_log_set_callback(FFLog::log_callback_android);
+    pthread_create(&pthread, NULL, openVideo, (void *) this);
+}
+
+
+int Player::open(char *path) {
     int ret = -1;
 
     if (StringUtil::isEmpty(path)) {
@@ -67,10 +102,11 @@ int Video::Open() {
 
     LOGE(TAG, "视频文件：%s 打开成功", path);
 
-    return 0;
+    return SUCCESS;
+
 }
 
-int Video::Play(GLRender* glRender, EglCore *eglCore) {
+int Player::decode() {
     AVFrame *pFrame = NULL;
     AVPacket *pPacket = NULL;
     SwsContext *pSwsCxt = NULL;
@@ -132,11 +168,11 @@ int Video::Play(GLRender* glRender, EglCore *eglCore) {
                                 pRGBAFrame->data, pRGBAFrame->linesize);
                 LOGE(TAG, "%d 帧转换成功：slice 高度：%d", index, ret);
 
-                glRender->BindBitmap(pRGBAFrame->data, pRGBAFrame->width, pRGBAFrame->height);
-                glRender->Draw();
-                eglCore->SwapBuffers();
+                //开始渲染
+                opengl->draw(pFrame->data[0], m_nDstWidth, m_nDstHeight, egl->eglDisplay,
+                             egl->eglSurface);
 
-
+                //释放
                 av_frame_unref(pFrame);
                 //释放存RGBA数据帧的空间
                 av_frame_free(&pRGBAFrame);
@@ -148,29 +184,9 @@ int Video::Play(GLRender* glRender, EglCore *eglCore) {
 
     }
 
-    return 0;
 }
 
-Video::Video(char *path, int width, int height, AVPixelFormat dstFmt) : path(path),
-                                                                        m_nDstWidth(width),
-                                                                        m_nDstHeight(height),
-                                                                        m_DstFmt(dstFmt) {}
-
-Video::~Video() {
-    if (codecCxt != nullptr) {
-        avcodec_free_context(&codecCxt);
-    }
-    if (c != nullptr) {
-        avformat_free_context(c);
-    }
-
-}
-
-int Video::Close() {
-    return 0;
-}
-
-AVFrame *Video::alloc_picture(enum AVPixelFormat pix_fmt, int width, int height) {
+AVFrame *Player::alloc_picture(enum AVPixelFormat pix_fmt, int width, int height) {
     AVFrame *picture = NULL;
     int ret;
 
@@ -191,3 +207,10 @@ AVFrame *Video::alloc_picture(enum AVPixelFormat pix_fmt, int width, int height)
 
     return picture;
 }
+
+
+
+
+
+
+

@@ -81,13 +81,13 @@ EGLConfig EglCore::GetEGLConfig() {
     return config;
 }
 
-EGLSurface EglCore::CreateWindSurface(ANativeWindow *window) {
-    EGLSurface surface = eglCreateWindowSurface(m_egl_dsp, m_egl_cfg, window, 0);
+int EglCore::CreateWindSurface(ANativeWindow *window) {
+    eglSurface = eglCreateWindowSurface(m_egl_dsp, m_egl_cfg, window, 0);
     if (eglGetError() != EGL_SUCCESS) {
         LOGI(TAG, "EGL create window surface fail");
-        return NULL;
+        return RET_ERROR;
     }
-    return surface;
+    return RET_SUCCESS;
 }
 
 EGLSurface EglCore::CreateOffScreenSurface(int width, int height) {
@@ -105,14 +105,20 @@ EGLSurface EglCore::CreateOffScreenSurface(int width, int height) {
     return surface;
 }
 
-void EglCore::MakeCurrent(EGLSurface egl_surface) {
-    if (!eglMakeCurrent(m_egl_dsp, egl_surface, egl_surface, m_egl_cxt)) {
-        LOGE(TAG, "EGL make current fail");
+int EglCore::MakeCurrent() {
+    if (eglSurface == nullptr) {
+        LOGE(TAG, "EGL MakeCurrent eglSurface为空")
+        return RET_ERROR;
     }
+    if (!eglMakeCurrent(m_egl_dsp, eglSurface, eglSurface, m_egl_cxt)) {
+        LOGE(TAG, "EGL make current fail");
+        return RET_ERROR;
+    }
+    return RET_SUCCESS;
 }
 
-void EglCore::SwapBuffers(EGLSurface egl_surface) {
-    eglSwapBuffers(m_egl_dsp, egl_surface);
+void EglCore::SwapBuffers() {
+    eglSwapBuffers(m_egl_dsp, eglSurface);
 }
 
 void EglCore::DestroySurface(EGLSurface elg_surface) {
@@ -130,5 +136,33 @@ void EglCore::Release() {
     m_egl_dsp = EGL_NO_DISPLAY;
     m_egl_cxt = EGL_NO_CONTEXT;
     m_egl_cfg = NULL;
+}
+
+int EglCore::OpenEGL(ANativeWindow *window) {
+    if (window == nullptr) {
+        return RET_ERROR;
+    }
+    bool success = Init(nullptr);
+    if (!success) {
+        LOGE(TAG, "EGL Init初始化失败");
+        return RET_ERROR;
+    }
+    int ret = RET_ERROR;
+    ret = CreateWindSurface(window);
+    if (!ret) {
+        LOGE(TAG, "EGL CreateWindSurface 关联本地窗口失败")
+        return RET_ERROR;
+    }
+    ret = MakeCurrent();
+    if (!ret) {
+        LOGE(TAG, "EDL MakeCurrent 失败")
+        return RET_ERROR;
+    }
+
+    if (eglSurface == nullptr) {
+        LOGE(TAG, "EGL CreateWindSurface 关联本地窗口失败")
+        return RET_ERROR;
+    }
+    return RET_SUCCESS;
 }
 

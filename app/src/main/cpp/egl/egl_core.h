@@ -13,6 +13,7 @@
 #define LEARNVIDEO_EGL_CORE_H
 
 #include "log.h"
+#include "constant.h"
 
 extern "C" {
 #include <EGL/egl.h>
@@ -31,12 +32,13 @@ private:
 
     // EGL配置
     EGLConfig m_egl_cfg;
-
     EGLConfig GetEGLConfig();
 
 public:
     EglCore();
     ~EglCore();
+
+    EGLSurface eglSurface;
 
     bool Init(EGLContext share_ctx);
 
@@ -45,7 +47,7 @@ public:
      * @param window 本地窗口
      * @return
      */
-    EGLSurface CreateWindSurface(ANativeWindow *window);
+    int CreateWindSurface(ANativeWindow *window);
 
     /**
      * 创建离屏渲染表面
@@ -59,13 +61,13 @@ public:
      * 将OpenGL上下文和线程进行绑定
      * @param egl_surface
      */
-    void MakeCurrent(EGLSurface egl_surface);
+    int MakeCurrent();
 
     /**
      * 将缓存数据交换到前台进行显示
      * @param egl_surface
      */
-    void SwapBuffers(EGLSurface egl_surface);
+    void SwapBuffers();
 
     /**
      * 释放显示
@@ -77,6 +79,14 @@ public:
      * 释放ELG
      */
     void Release();
+
+    /**
+     * 打开EGL
+     * @param window
+     * @return
+     */
+    int OpenEGL(ANativeWindow *window);
+
 };
 
 

@@ -19,12 +19,11 @@ private:
 
     EglCore *m_core;
 
-    EGLSurface m_surface;
-
-
 public:
     EglSurface();
     ~EglSurface();
+
+    EGLSurface m_surface;
 
     bool Init();
     void CreateEglSurface(ANativeWindow *native_window, int width, int height);

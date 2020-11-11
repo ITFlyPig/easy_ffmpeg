@@ -17,6 +17,8 @@
 
 #include "GLRender.h"
 #include "egl/egl_core.h"
+//#include "video/video.h"
+#include "player/player.h"
 
 #define STREAM_DURATION   10.0
 #define SCALE_FLAGS SWS_BICUBIC
@@ -845,6 +847,7 @@ void renderBitmap(std::shared_ptr<EglCore> egl, jobject surface, void *pixel, in
 
          usleep(2000);
      }*/
+    int ret = RET_ERROR;
     JNIEnv *env = nullptr;
     if (javaVM->AttachCurrentThread(&env, NULL) != JNI_OK) {
         LOGE(TAG, "AttachCurrentThread 错误");
@@ -856,16 +859,11 @@ void renderBitmap(std::shared_ptr<EglCore> egl, jobject surface, void *pixel, in
         return;
     }
 
-    /*初始化egl*/
-    egl->Init(NULL);
-    //将EGL和本地的渲染窗口建立连接
-    EGLSurface eglSurface = egl->CreateWindSurface(nativeWindow);
-    if (eglSurface == NULL) {
-        LOGE(TAG, "创建EGLSurface失败");
+    ret = egl->OpenEGL(nativeWindow);
+    if (!ret) {
+        LOGE(TAG, "OpenEGL失败");
         return;
     }
-    egl->MakeCurrent(eglSurface);
-
     /*开始使用opengl*/
     GLRender *cglRender = new GLRender();
     /*创建opengl程序*/
@@ -877,7 +875,7 @@ void renderBitmap(std::shared_ptr<EglCore> egl, jobject surface, void *pixel, in
     //绘制
     cglRender->Draw();
     //显示
-    egl->SwapBuffers(eglSurface);
+    egl->SwapBuffers();
 
     delete cglRender;
 
@@ -890,13 +888,45 @@ void startBitmapRenderThread(jobject surface) {
 //    t.join();
 }
 
+//打开解码器
+void openCodec() {
+
+
+}
+
+//打开EGL
+void openEgl() {
+
+}
+
+//打开opengl
+void openGL() {
+
+}
+
+
+///////视频播放三部曲/////////
+void open() {
+
+
+}
+
+void draw() {
+    //解码
+    //渲染
+}
+
+void cloase() {
+    //关闭资源
+}
+
 
 extern "C"
 JNIEXPORT void JNICALL
 Java_com_wyl_ffmpegtest_MainActivity_renderBitmap(JNIEnv *env, jobject thiz, jobject sf,
                                                   jobject bitmap) {
-    env->GetJavaVM(&javaVM);
 //    startBitmapRenderThread(sf);
+    env->GetJavaVM(&javaVM);
     std::shared_ptr<EglCore> that(new EglCore());
     AndroidBitmapInfo bitmapInfo;
     void *pixel = nullptr;
@@ -919,4 +949,98 @@ Java_com_wyl_ffmpegtest_MainActivity_renderBitmap(JNIEnv *env, jobject thiz, job
     renderBitmap(that, sf, pixel, bitmapInfo.width, bitmapInfo.height);
 
     AndroidBitmap_unlockPixels(env, bitmap);
+}
+//extern "C"
+//JNIEXPORT void JNICALL
+//Java_com_wyl_ffmpegtest_MainActivity_renderVideo(JNIEnv *env, jobject thiz, jstring path,  jint width, jint height) {
+//    av_log_set_callback(FFLog::log_callback_android);
+//    char *videoPath = const_cast<char *>(env->GetStringUTFChars(path, JNI_FALSE));
+//    int ret = RET_ERROR;
+//    Video *video = new Video(videoPath);
+//    ret = video->Open();
+//    if (ret < 0) {
+//        LOGE(TAG, "视频:%s  打开失败", videoPath);
+//        return;
+//    }
+//    GLRender glRender;
+//    video->Play(glRender);
+////    delete video;
+//
+//}
+
+
+char *name = "wangyuelin";
+extern "C"
+JNIEXPORT jlong JNICALL
+Java_com_wyl_ffmpegtest_MainActivity_getAddr(JNIEnv *env, jobject thiz) {
+    LOGE(TAG, "长度：%d", strlen(name));
+    return (long) name;
+}
+
+
+extern "C"
+JNIEXPORT jbyteArray JNICALL
+Java_com_wyl_ffmpegtest_MainActivity_getStringByteArr(JNIEnv *env, jobject thiz, jlong addr,
+                                                      jint len) {
+    unsigned char *data = reinterpret_cast<unsigned char *>(addr);
+    jbyteArray jarr = env->NewByteArray(len);
+    env->SetByteArrayRegion(jarr, 0, len, reinterpret_cast<const jbyte *>(data));
+    return jarr;
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_wyl_ffmpegtest_MainActivity_renderVideo(JNIEnv *env, jobject thiz, jstring path,
+                                                 jint width, jint height, jobject surface) {
+    av_log_set_callback(FFLog::log_callback_android);
+
+//    JavaVM *javaVM;
+//    env->GetJavaVM(&javaVM);
+//    JNIEnv *newEnv = nullptr;
+//    if (javaVM->AttachCurrentThread(&env, NULL) != JNI_OK) {
+//        LOGE(TAG, "AttachCurrentThread 错误");
+//        return;
+//    }
+    ANativeWindow *nativeWindow = ANativeWindow_fromSurface(env, surface);
+    if (nativeWindow == nullptr) {
+        LOGE(TAG, "ANativeWindow创建失败");
+        return;
+    }
+
+    char *videoPath = const_cast<char *>(env->GetStringUTFChars(path, JNI_FALSE));
+    int ret = RET_ERROR;
+//    Video *video = new Video(videoPath, width, height, AV_PIX_FMT_RGBA);
+//    ret = video->Open();
+    if (ret < 0) {
+        LOGE(TAG, "视频:%s  打开失败", videoPath);
+        return;
+    }
+    EglCore *eglCore = new EglCore();
+    ret = eglCore->OpenEGL(nativeWindow);
+    if (!ret) {
+        LOGE(TAG, "OpenEGL 失败");
+        return;
+    }
+
+    /*开始使用opengl*/
+    GLRender *cglRender = new GLRender();
+    /*创建opengl程序*/
+    cglRender->CreateProgram();
+    //创建和绑定纹理单元
+    cglRender->CreateAndBindTexture();
+
+//    video->Play(cglRender, eglCore);
+//    delete video;
+
+}
+
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_wyl_ffmpegtest_MainActivity_openVideo(JNIEnv *env, jobject thiz, jstring path) {
+    jboolean isCopy;
+     char *videoPath = const_cast<char *>(env->GetStringUTFChars(path, &isCopy));
+    Player* player = new Player();
+    player->newThread(videoPath);
+
 }

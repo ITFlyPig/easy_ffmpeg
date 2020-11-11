@@ -126,7 +126,6 @@ int GLRender::CreateAndBindTexture() {
     //绑定纹理单元到纹理id
     glBindTexture(GL_TEXTURE_2D, m_nTextureId);
     checkGlError("glBindTexture");
-    //
     glUniform1i(m_nTextureMatrixLoc ,0);
     checkGlError("glUniform1i");
     //配置边缘过度参数

@@ -31,5 +31,15 @@
         android:id="@+id/surface"
         android:layout_width="match_parent"
         android:layout_height="100dp"/>
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:id="@+id/tv_render_video"
+        android:text="native openGL + EGL 渲染视频"
+        android:gravity="center"/>
+    <SurfaceView
+        android:id="@+id/video_surface"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"/>
 
 </LinearLayout>

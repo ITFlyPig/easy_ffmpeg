@@ -19,6 +19,7 @@ import com.wyl.ffmpegtest.permission.PermissionRequestUtil;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
@@ -32,6 +33,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private TextView tvOpenGlEGLShow;
     private SurfaceView surfaceView;
     private Surface surface;
+    private SurfaceView videoSurfaceView;
+    private Surface videoSurface;
+    private TextView tvRenderVideo;
 
 
     @Override
@@ -103,6 +107,25 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         tvOpenGlEGLShow = findViewById(R.id.tv_opengl_egl_show);
         tvOpenGlEGLShow.setOnClickListener(this);
+        tvRenderVideo = findViewById(R.id.tv_render_video);
+        tvRenderVideo.setOnClickListener(this);
+        videoSurfaceView = findViewById(R.id.video_surface);
+        videoSurfaceView.getHolder().addCallback(new SurfaceHolder.Callback() {
+            @Override
+            public void surfaceCreated(SurfaceHolder holder) {
+                videoSurface = holder.getSurface();
+            }
+
+            @Override
+            public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+
+            }
+
+            @Override
+            public void surfaceDestroyed(SurfaceHolder holder) {
+
+            }
+        });
     }
 
     /**
@@ -134,10 +157,24 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 Bitmap bitmap = BitmapFactory.decodeResource(getResources(), R.mipmap.bg_english_ability_test);
                 renderBitmap(surface, bitmap);
                 break;
+            case R.id.tv_render_video:
+//                int width = videoSurfaceView.getWidth();
+//                int height = videoSurfaceView.getHeight();
+//                renderVideo("/sdcard/mvtest.mp4", width, height, videoSurface);
+                openVideo("/sdcard/mvtest.mp4");
+                break;
             default:
                 break;
         }
     }
 
     public native void renderBitmap(Surface surface, Bitmap bitmap);
+
+    public native void renderVideo(String path, int width, int height, Surface surface);
+
+    public native long getAddr();
+
+    public native byte[] getStringByteArr(long addr, int len);
+
+    public native void openVideo(String path);
 }

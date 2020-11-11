@@ -21,7 +21,7 @@ FILE(GLOB JNI_H ${JNI_PATH}/*.h)
 
 #video
 FILE(GLOB VIDEO_CPP ${JNI_PATH}/video/*.cpp)
-FILE(GLOB VIDEO_H ${JNI_PATH}/video)
+FILE(GLOB VIDEO_H ${JNI_PATH}/video/*.h)
 
 #image
 FILE(GLOB IMAGE_CPP ${JNI_PATH}/image/*.cpp)
@@ -45,6 +45,9 @@ FILE(GLOB CONSTANT_CPP ${JNI_PATH}/constant/*.cpp)
 #egl
 FILE(GLOB EGL_H ${JNI_PATH}/egl)
 FILE(GLOB EGL_CPP ${JNI_PATH}/egl/*.cpp)
+#player
+FILE(GLOB PLAYER_H ${JNI_PATH}/player/*.h)
+FILE(GLOB PLAYER_CPP ${JNI_PATH}/player/*.cpp)
 
 #======================加载头文件===================
 include_directories(${JNI_H})
@@ -64,6 +67,8 @@ include_directories(${GL_H})
 include_directories(${CONSTANT_H})
 #EGL_H
 include_directories(${CONSTANT_H})
+#PLAYER_H
+include_directories(${PLAYER_H})
 
 
 
@@ -97,7 +102,8 @@ add_library(native-lib SHARED
         ${UTILS_CPP}
         ${GL_CPP}
         ${CONSTANT_CPP}
-        ${EGL_CPP})
+        ${EGL_CPP}
+        ${PLAYER_CPP})
 
 #找到系统提供的库
 find_library(log-lib log)

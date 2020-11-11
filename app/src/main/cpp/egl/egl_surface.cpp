@@ -20,11 +20,11 @@ bool EglSurface::Init() {
 void EglSurface::CreateEglSurface(ANativeWindow *native_window, int width, int height) {
     if (native_window != NULL) {
         this->m_native_window = native_window;
-        m_surface = m_core->CreateWindSurface(m_native_window);
+        m_core->CreateWindSurface(m_native_window);
     } else {
-        m_surface = m_core->CreateOffScreenSurface(width, height);
+        m_core->CreateOffScreenSurface(width, height);
     }
-    if (m_surface == NULL) {
+    if (m_core->eglSurface == NULL) {
         LOGE(TAG, "EGL create window surface fail");
         Release();
     }
@@ -32,11 +32,11 @@ void EglSurface::CreateEglSurface(ANativeWindow *native_window, int width, int h
 }
 
 void EglSurface::SwapBuffers() {
-    m_core->SwapBuffers(m_surface);
+    m_core->SwapBuffers();
 }
 
 void EglSurface::MakeCurrent() {
-    m_core->MakeCurrent(m_surface);
+    m_core->MakeCurrent();
 }
 
 void EglSurface::DestroyEglSurface() {
