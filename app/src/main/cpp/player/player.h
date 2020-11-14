@@ -11,6 +11,7 @@
 #include "Ogl.h"
 #include "Egl.h"
 #include <constant.h>
+#include <unistd.h>
 
 #endif //FFMPEGTEST_PLAYER_H
 
@@ -37,6 +38,7 @@ public:
     char *path;
     int m_nDstWidth = 0;//目标视频宽度
     int m_nDstHeight = 0;//目标视频高度
+    int delay = 0;//每帧睡眠的时间
 
 public:
 
@@ -45,6 +47,7 @@ public:
     int open(char *path);
 
     int decode();
+
     int release();
 
     static void *openVideo(void *player);

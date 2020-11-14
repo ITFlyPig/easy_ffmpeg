@@ -69,6 +69,10 @@ int Player::open(char *path) {
         if (c->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
             videoIndex = i;
             codecId = c->streams[i]->codecpar->codec_id;
+            AVRational frameRate = c->streams[i]->avg_frame_rate;
+            if (frameRate.num > 0 && frameRate.den > 0) {
+                delay = int(1000000 * ((float)frameRate.den / (float)frameRate.num));
+            }
             break;
         }
     }
@@ -183,6 +187,9 @@ int Player::decode() {
                 //释放存RGBA数据帧的空间
                 index++;
                 av_frame_free(&pRGBAFrame);
+
+                //延迟部分时间，为了播放速度比较正常
+                usleep(delay);
             }
 
 
