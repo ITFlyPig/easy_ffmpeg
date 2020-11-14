@@ -10,23 +10,18 @@ int Egl::render(void *pixel) {
 }
 
 int Egl::close() {
-    EGLBoolean success = eglDestroySurface(eglDisplay, eglSurface);
-    if (!success) {
-        LOGE(TAG, "eglDestroySurface failure.");
+    eglMakeCurrent(eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+    if (eglSurface != EGL_NO_SURFACE) {
+        eglDestroySurface(eglDisplay, eglSurface);
     }
-
-    success = eglDestroyContext(eglDisplay, eglContext);
-    if (!success) {
-        LOGE(TAG, "eglDestroySurface failure.");
+    if (eglContext != EGL_NO_CONTEXT) {
+        eglDestroyContext(eglDisplay, eglContext);
     }
-
-    success = eglTerminate(eglDisplay);
-    if (!success) {
-        LOGE(TAG, "eglDestroySurface failure.");
-    }
+    eglTerminate(eglDisplay);
     eglSurface = NULL;
     eglContext = NULL;
     eglDisplay = NULL;
+    LOGE(TAG, "EGL释放资源成功");
     return 0;
 }
 

@@ -33,6 +33,8 @@ void *Player::openVideo(void *player) {
     }
     //egl和OpenGL都准备好了，开始解码
     pPlayer->decode();
+    //播放完毕，释放资源
+    pPlayer->release();
     return reinterpret_cast<void *>(1);
 
 }
@@ -127,7 +129,6 @@ int Player::decode() {
         return RET_ERROR;
     }
 
-
     //将YUV转为RGBA
     if (m_nDstHeight <= 0 || m_nDstWidth <= 0) {
         LOGE(TAG, "需要渲染的宽度或高度为0");
@@ -169,7 +170,7 @@ int Player::decode() {
                     return RET_ERROR;
                 }
                 LOGE(TAG, "申请帧空间RGBAFrame成功");
-               //将YUV转为opengl能渲染的RGBA
+                //将YUV转为opengl能渲染的RGBA
                 ret = sws_scale(pSwsCxt, pFrame->data, pFrame->linesize, 0, pFrame->height,
                                 pRGBAFrame->data, pRGBAFrame->linesize);
                 LOGE(TAG, "%d 帧转换成功：slice 高度：%d", index, ret);
@@ -190,6 +191,16 @@ int Player::decode() {
 
 
     }
+
+    av_packet_unref(pPacket);
+    av_packet_free(&pPacket);
+    pPacket = nullptr;
+
+    av_frame_free(&pFrame);
+    pFrame = nullptr;
+
+    sws_freeContext(pSwsCxt);
+    pSwsCxt = nullptr;
 
     return 1;
 
@@ -215,6 +226,26 @@ AVFrame *Player::alloc_picture(enum AVPixelFormat pix_fmt, int width, int height
     }
 
     return picture;
+}
+
+int Player::release() {
+    if (egl != nullptr) {
+        egl->close();
+        egl = nullptr;
+    }
+
+    if (c != nullptr) {
+        avformat_close_input(&c);
+        avformat_free_context(c);
+        c = nullptr;
+    }
+    if (codecCxt != nullptr) {
+        avcodec_free_context(&codecCxt);
+        codecCxt = nullptr;
+    }
+
+
+    return 0;
 }
 
 

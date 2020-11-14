@@ -45,6 +45,7 @@ public:
     int open(char *path);
 
     int decode();
+    int release();
 
     static void *openVideo(void *player);
 
