@@ -19,7 +19,7 @@ void *Player::openVideo(void *player) {
     }
     //初始化Egl
     pPlayer->egl = new Egl();
-    if (pPlayer->egl->open(nullptr) < 0) {
+    if (pPlayer->egl->open(pPlayer->aNativeWindow) < 0) {
         LOGE(TAG, "Egl初始化失败");
         return (void *) ERROR;
     }
@@ -28,6 +28,8 @@ void *Player::openVideo(void *player) {
     if (!pPlayer->opengl->CreateProgram()) {
         LOGE(TAG, "OpenGL 初始化失败");
         return (void *) ERROR;
+    } else {
+        LOGE(TAG, "OpenGL 初始化成功");
     }
     //egl和OpenGL都准备好了，开始解码
     pPlayer->decode();
@@ -35,8 +37,9 @@ void *Player::openVideo(void *player) {
 
 }
 
-void Player::newThread(char *path) {
+void Player::newThread(char *path, ANativeWindow *aNativeWindow) {
     this->path = path;
+    this->aNativeWindow = aNativeWindow;
     av_log_set_callback(FFLog::log_callback_android);
     pthread_create(&pthread, NULL, openVideo, (void *) this);
 }
@@ -123,6 +126,8 @@ int Player::decode() {
         LOGE(TAG, "AVFrame申请失败");
         return RET_ERROR;
     }
+
+
     //将YUV转为RGBA
     if (m_nDstHeight <= 0 || m_nDstWidth <= 0) {
         LOGE(TAG, "需要渲染的宽度或高度为0");
@@ -131,10 +136,12 @@ int Player::decode() {
     pSwsCxt = sws_getContext(codecCxt->width, codecCxt->height, codecCxt->pix_fmt,
                              m_nDstWidth, m_nDstHeight, m_DstFmt,
                              SWS_FAST_BILINEAR, NULL, NULL, NULL);
+
     if (pSwsCxt == nullptr) {
         LOGE(TAG, "sws_getContext 失败");
         return RET_ERROR;
     }
+
     //开始解码
     int index = 0;
     while (av_read_frame(c, pPacket) == 0) {
@@ -151,38 +158,40 @@ int Player::decode() {
                     LOGE(TAG, "直接开始下次的av_read_frame 和 avcodec_send_packet");
                     break;
                 }
-
                 if (ret < 0) {
                     LOGE(TAG, "Error during decoding:%s", av_err2str(ret));
                     return RET_ERROR;
                 }
 
-
                 AVFrame *pRGBAFrame = alloc_picture(m_DstFmt, m_nDstWidth, m_nDstHeight);
                 if (pRGBAFrame == nullptr) {
-                    LOGE(TAG, "申请帧空间失败");
+                    LOGE(TAG, "申请帧空间RGBAFrame失败");
                     return RET_ERROR;
                 }
-//            //将YUV转为opengl能渲染的RGBA
+                LOGE(TAG, "申请帧空间RGBAFrame成功");
+               //将YUV转为opengl能渲染的RGBA
                 ret = sws_scale(pSwsCxt, pFrame->data, pFrame->linesize, 0, pFrame->height,
                                 pRGBAFrame->data, pRGBAFrame->linesize);
                 LOGE(TAG, "%d 帧转换成功：slice 高度：%d", index, ret);
-
                 //开始渲染
-                opengl->draw(pFrame->data[0], m_nDstWidth, m_nDstHeight, egl->eglDisplay,
+                opengl->draw(pRGBAFrame->data[0], m_nDstWidth, m_nDstHeight, egl->eglDisplay,
                              egl->eglSurface);
-
+//
                 //释放
-                av_frame_unref(pFrame);
+//                av_frame_unref(pFrame);
                 //释放存RGBA数据帧的空间
+                index++;
                 av_frame_free(&pRGBAFrame);
             }
 
-            av_packet_unref(pPacket);
-            index++;
+
         }
+        av_packet_unref(pPacket);
+
 
     }
+
+    return 1;
 
 }
 

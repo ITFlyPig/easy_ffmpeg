@@ -158,10 +158,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 renderBitmap(surface, bitmap);
                 break;
             case R.id.tv_render_video:
-//                int width = videoSurfaceView.getWidth();
-//                int height = videoSurfaceView.getHeight();
+                int width = videoSurfaceView.getWidth();
+                int height = videoSurfaceView.getHeight();
 //                renderVideo("/sdcard/mvtest.mp4", width, height, videoSurface);
-                openVideo("/sdcard/mvtest.mp4");
+                openVideo("/sdcard/mvtest.mp4", videoSurface, width, height);
                 break;
             default:
                 break;
@@ -176,5 +176,5 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     public native byte[] getStringByteArr(long addr, int len);
 
-    public native void openVideo(String path);
+    public native void openVideo(String path, Surface surface, int width, int height);
 }

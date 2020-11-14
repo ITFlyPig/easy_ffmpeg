@@ -19,28 +19,28 @@ class Player {
 
 private:
     AVFormatContext *c = nullptr;
-//视频流的索引
+    //视频流的索引
     int videoIndex = -1;
-//文件路劲
+    //文件路劲
 
     AVCodecID codecId;//解码器id
     AVCodec *codec = NULL;
     AVCodecContext *codecCxt = NULL;
 
     pthread_t pthread;
-
-    int m_nDstWidth = 0;//目标视频宽度
-    int m_nDstHeight = 0;//目标视频高度
     AVPixelFormat m_DstFmt = AV_PIX_FMT_RGBA;//目标格式
     Opengl *opengl;
     Egl *egl;
+    ANativeWindow *aNativeWindow;
 
 public:
     char *path;
+    int m_nDstWidth = 0;//目标视频宽度
+    int m_nDstHeight = 0;//目标视频高度
 
 public:
 
-    void newThread(char *path);
+    void newThread(char *path, ANativeWindow *aNativeWindow);
 
     int open(char *path);
 

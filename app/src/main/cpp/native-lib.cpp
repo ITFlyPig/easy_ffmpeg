@@ -1034,13 +1034,22 @@ Java_com_wyl_ffmpegtest_MainActivity_renderVideo(JNIEnv *env, jobject thiz, jstr
 
 }
 
-
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_wyl_ffmpegtest_MainActivity_openVideo(JNIEnv *env, jobject thiz, jstring path) {
+Java_com_wyl_ffmpegtest_MainActivity_openVideo(JNIEnv *env, jobject thiz, jstring path,
+                                               jobject surface, jint width, jint height) {
+
+    ANativeWindow *nativeWindow = ANativeWindow_fromSurface(env, surface);
+    if (nativeWindow == nullptr) {
+        LOGE(TAG, "ANativeWindow创建失败");
+        return;
+    }
+
     jboolean isCopy;
-     char *videoPath = const_cast<char *>(env->GetStringUTFChars(path, &isCopy));
-    Player* player = new Player();
-    player->newThread(videoPath);
+    char *videoPath = const_cast<char *>(env->GetStringUTFChars(path, &isCopy));
+    Player *player = new Player();
+    player->m_nDstWidth = width;
+    player->m_nDstHeight = height;
+    player->newThread(videoPath, nativeWindow);
 
 }
