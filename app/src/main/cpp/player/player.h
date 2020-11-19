@@ -7,11 +7,11 @@
 
 #include <pthread.h>
 #include <log.h>
-#include "StringUtil.h"
 #include "Ogl.h"
 #include "Egl.h"
 #include <constant.h>
 #include <unistd.h>
+#include "../utils/StringUtil.h"
 
 #endif //FFMPEGTEST_PLAYER_H
 

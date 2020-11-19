@@ -6,8 +6,8 @@
 #define FFMPEGTEST_IMAGE_H
 
 #include <string>
-#include "StringUtil.h"
 #include "log.h"
+#include "../utils/StringUtil.h"
 
 extern "C" {
 #include "libavformat/avformat.h"

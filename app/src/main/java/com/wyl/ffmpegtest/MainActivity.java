@@ -158,15 +158,62 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 renderBitmap(surface, bitmap);
                 break;
             case R.id.tv_render_video:
-                int width = videoSurfaceView.getWidth();
-                int height = videoSurfaceView.getHeight();
+                PermissionRequestUtil.request(MainActivity.this, new PermissionListener() {
+                    @Override
+                    public void onResult(String[] permission, boolean[] grantedResults) {
+                        if (grantedResults.length == 2 && grantedResults[0] && grantedResults[1]) {
+                            int width = videoSurfaceView.getWidth();
+                            int height = videoSurfaceView.getHeight();
 //                renderVideo("/sdcard/mvtest.mp4", width, height, videoSurface);
-                openVideo("/sdcard/mvtest.mp4", videoSurface, width, height);
+//                openVideo("/sdcard/mvtest.mp4", videoSurface, width, height);
+//                            String targetPath = getFilesDir() + File.separator +  "mvtest22.mp4";
+//                            File targetFile = new File(targetPath);
+//                            if (!targetFile.exists()) {
+//                                try {
+//                                    if (!targetFile.createNewFile()) {
+//                                        Log.e(TAG, "onClick: 新文件创建失败，退出：" + targetPath);
+//                                        return;
+//                                    }
+//                                } catch (IOException e) {
+//                                    e.printStackTrace();
+//                                }
+//                            }
+////                            rmAudio("/sdcard/mvtest.mp4", targetPath);
+//                            testEncodeVideo(targetPath);
+                            String targetPath = "/sdcard/make_video.mp4";
+                            String name = "make_video.mp4";
+                            if (makeFile(targetPath)) {
+                                makeVideo(targetPath, name);
+                            }
+                        } else {
+                            Toast.makeText(MainActivity.this, "权限被拒绝", Toast.LENGTH_SHORT).show();
+                        }
+
+                    }
+                }, Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE);
+
                 break;
             default:
                 break;
         }
     }
+
+    private boolean makeFile(String path) {
+        File targetFile = new File(path);
+        if (!targetFile.exists()) {
+            try {
+                if (!targetFile.createNewFile()) {
+                    Log.e(TAG, "onClick: 新文件创建失败，退出：" + path);
+                    return false;
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+                return false;
+            }
+        }
+        return true;
+    }
+
 
     public native void renderBitmap(Surface surface, Bitmap bitmap);
 
@@ -177,4 +224,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public native byte[] getStringByteArr(long addr, int len);
 
     public native void openVideo(String path, Surface surface, int width, int height);
+
+    public native void rmAudio(String srcPath, String outPath);
+
+    public native void testEncodeVideo(String outPath);
+
+    public native void makeVideo(String path, String name);
 }

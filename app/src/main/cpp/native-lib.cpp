@@ -19,6 +19,8 @@
 #include "egl/egl_core.h"
 //#include "video/video.h"
 #include "player/player.h"
+#include "audio/RmAudio.h"
+#include "utils/StringUtil.h"
 
 #define STREAM_DURATION   10.0
 #define SCALE_FLAGS SWS_BICUBIC
@@ -245,7 +247,7 @@ AVFrame *get_video_frame(OutputStream *ost) {
 
     /* when we pass a frame to the encoder, it may keep a reference to it
      * internally; make sure we do not overwrite it here */
-//
+
 //    if (av_frame_make_writable(ost->frame) < 0)
 //        exit(1);
 //
@@ -1052,4 +1054,112 @@ Java_com_wyl_ffmpegtest_MainActivity_openVideo(JNIEnv *env, jobject thiz, jstrin
     player->m_nDstHeight = height;
     player->newThread(videoPath, nativeWindow);
 
+}extern "C"
+JNIEXPORT void JNICALL
+Java_com_wyl_ffmpegtest_MainActivity_rmAudio(JNIEnv *env, jobject thiz, jstring src_path,
+                                             jstring out_path) {
+    av_log_set_callback(FFLog::log_callback_android);
+    jboolean isCopy;
+    const char * src = env->GetStringUTFChars(src_path, &isCopy);
+    const char * target = env->GetStringUTFChars(out_path, &isCopy);
+    RmAudio *rmAudio = new RmAudio(src, target);
+    rmAudio->startRmAudio();
+
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_wyl_ffmpegtest_MainActivity_testEncodeVideo(JNIEnv *env, jobject thiz, jstring out_path) {
+    av_log_set_callback(FFLog::log_callback_android);
+    jboolean isCopy;
+    const char * target = env->GetStringUTFChars(out_path, &isCopy);
+    RmAudio *rmAudio = new RmAudio("/sdcard/mvtest.mp4", target);
+    rmAudio->testEncode();
+
+}
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_wyl_ffmpegtest_MainActivity_makeVideo(JNIEnv *env, jobject thiz, jstring path, jstring name) {
+    av_log_set_callback(FFLog::log_callback_android);
+
+    //文件输出路劲
+    jboolean isCopy;
+    const char *output_file_path = env->GetStringUTFChars(path, &isCopy);
+    const char *filename = env->GetStringUTFChars(name, &isCopy);
+
+    //格式上下文
+    AVFormatContext *oc = NULL;
+    //输出格式
+    AVOutputFormat *fmt = NULL;
+    AVCodec *video_codec = NULL;
+    AVDictionary *opt = NULL;
+    int have_video = 0;
+    int encode_video = 0;
+    int ret;
+
+    OutputStream video_st = {0};
+
+    avformat_alloc_output_context2(&oc, fmt, NULL, filename);
+    if (!oc) {
+        LOGE(TAG, "avformat_alloc_output_context2 失败，使用MPEG格式");
+        avformat_alloc_output_context2(&oc, fmt, "mpeg", filename);
+    }
+    if (!oc) {
+        LOGE(TAG, "avformat_alloc_output_context2 失败，使用MPEG格式也失败");
+        return;
+    }
+
+    //使用格式上下文初始化输出格式
+    fmt = oc->oformat;
+
+    if (fmt->video_codec != AV_CODEC_ID_NONE) {
+        LOGE(TAG, "输出有编码器，创建stream和初始化编码器codec");
+        add_stream(&video_st, oc, &video_codec, fmt->video_codec);
+        have_video = 1;
+        encode_video = 1;
+    }
+    if (have_video) {
+        open_video(oc, video_codec, &video_st, opt);
+    }
+
+    av_dump_format(oc, 0, filename, 1);
+
+    /* open the output file, if needed */
+    if (!(fmt->flags & AVFMT_NOFILE)) {
+        ret = avio_open(&oc->pb, output_file_path, AVIO_FLAG_READ_WRITE);
+        if (ret < 0) {
+            LOGE(TAG, "Could not open '%s': %s\n", filename,
+                 av_err2str(ret));
+            exit(1);
+        }
+    }
+
+    /* Write the stream header, if any. */
+    ret = avformat_write_header(oc, &opt);
+    if (ret < 0) {
+        LOGE(TAG, "Error occurred when opening output file: %s\n",
+             av_err2str(ret));
+        exit(1);
+    }
+
+    //开始写入内容
+    while (encode_video) {
+        encode_video = !write_video_frame(oc, &video_st);
+    }
+    /* Write the trailer, if any. The trailer must be written before you
+        * close the CodecContexts open when you wrote the header; otherwise
+        * av_write_trailer() may try to use memory that was freed on
+        * av_codec_close(). */
+    av_write_trailer(oc);
+
+    /* Close each codec. */
+    if (have_video)
+        close_stream(oc, &video_st);
+
+    if (!(fmt->flags & AVFMT_NOFILE))
+        /* Close the output file. */
+        avio_closep(&oc->pb);
+
+    /* free the stream */
+    avformat_free_context(oc);
 }

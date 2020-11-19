@@ -6,7 +6,7 @@
 #define FFMPEGTEST_VIDEO_H
 
 #include <jni.h>
-#include <StringUtil.h>
+#include "../utils/StringUtil.h"
 #include <GLRender.h>
 #include "constant.h"
 #include "log.h"
