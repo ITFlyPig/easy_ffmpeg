@@ -21,6 +21,7 @@
 #include "player/player.h"
 #include "audio/RmAudio.h"
 #include "utils/StringUtil.h"
+#include "video/encoder.h"
 
 #define STREAM_DURATION   10.0
 #define SCALE_FLAGS SWS_BICUBIC
@@ -157,13 +158,9 @@ AVFrame *alloc_picture(enum AVPixelFormat pix_fmt, int width, int height) {
 void open_video(AVFormatContext *oc, AVCodec *codec, OutputStream *ost, AVDictionary *opt_arg) {
     int ret;
     AVCodecContext *c = ost->enc;
-    AVDictionary *opt = NULL;
-
-    av_dict_copy(&opt, opt_arg, 0);
 
     //打开编码器
-    ret = avcodec_open2(c, codec, &opt);
-    av_dict_free(&opt);
+    ret = avcodec_open2(c, codec, nullptr);
     if (ret < 0) {
         LOGE(TAG, "Could not open video codec: %s\n", av_err2str(ret));
         exit(1);
@@ -237,13 +234,15 @@ void get_img_path(char *img_path) {
 }
 
 //得到一帧数据
-AVFrame *get_video_frame(OutputStream *ost) {
-    AVCodecContext *c = ost->enc;
+int next_pts = 0;
+
+AVFrame *get_video_frame(AVCodecContext *enc) {
 
     /* check if we want to generate more frames，TODO:将时间转换进行分析 */
-    if (av_compare_ts(ost->next_pts, c->time_base,
+    if (av_compare_ts(next_pts, enc->time_base,
                       STREAM_DURATION, (AVRational) {1, 1}) > 0)
         return NULL;
+
 
     /* when we pass a frame to the encoder, it may keep a reference to it
      * internally; make sure we do not overwrite it here */
@@ -276,15 +275,17 @@ AVFrame *get_video_frame(OutputStream *ost) {
 
 
     //申请内存，存放图片的地址
+    AVFrame *frame = nullptr;
     char *img_path = static_cast<char *>(malloc(1024));
     get_img_path(img_path);
     LOGE(TAG, "将要解析的图片的地址：%s", img_path);
-    ost->frame = parse_image(img_path);
+    frame = parse_image(img_path);
     //释放内存
     free(img_path);
-    ost->frame->pts = ost->next_pts++;
+    next_pts++;
+    frame->pts = next_pts;
 
-    return ost->frame;
+    return frame;
 }
 
 
@@ -343,8 +344,9 @@ int write_frame(AVFormatContext *fmt_ctx, AVCodecContext *c,
  * encode one video frame and send it to the muxer
  * return 1 when encoding is finished, 0 otherwise
  */
-int write_video_frame(AVFormatContext *oc, OutputStream *ost) {
-    return write_frame(oc, ost->enc, ost->st, get_video_frame(ost));
+int write_video_frame(AVFormatContext *oc, AVCodecContext *enc, AVStream *pst) {
+    AVFrame *imgFrame = get_video_frame(enc);
+    return write_frame(oc, enc, pst, imgFrame);
 }
 
 void close_stream(AVFormatContext *oc, OutputStream *ost) {
@@ -421,9 +423,9 @@ Java_com_wyl_ffmpegtest_MainActivity_makeMediaFile(JNIEnv *env, jobject thiz) {
     }
 
     //开始写入内容
-    while (encode_video) {
-        encode_video = !write_video_frame(oc, &video_st);
-    }
+//    while (encode_video) {
+//        encode_video = !write_video_frame(oc, &video_st);
+//    }
     /* Write the trailer, if any. The trailer must be written before you
         * close the CodecContexts open when you wrote the header; otherwise
         * av_write_trailer() may try to use memory that was freed on
@@ -1060,8 +1062,8 @@ Java_com_wyl_ffmpegtest_MainActivity_rmAudio(JNIEnv *env, jobject thiz, jstring 
                                              jstring out_path) {
     av_log_set_callback(FFLog::log_callback_android);
     jboolean isCopy;
-    const char * src = env->GetStringUTFChars(src_path, &isCopy);
-    const char * target = env->GetStringUTFChars(out_path, &isCopy);
+    const char *src = env->GetStringUTFChars(src_path, &isCopy);
+    const char *target = env->GetStringUTFChars(out_path, &isCopy);
     RmAudio *rmAudio = new RmAudio(src, target);
     rmAudio->startRmAudio();
 
@@ -1072,32 +1074,52 @@ JNIEXPORT void JNICALL
 Java_com_wyl_ffmpegtest_MainActivity_testEncodeVideo(JNIEnv *env, jobject thiz, jstring out_path) {
     av_log_set_callback(FFLog::log_callback_android);
     jboolean isCopy;
-    const char * target = env->GetStringUTFChars(out_path, &isCopy);
+    const char *target = env->GetStringUTFChars(out_path, &isCopy);
     RmAudio *rmAudio = new RmAudio("/sdcard/mvtest.mp4", target);
     rmAudio->testEncode();
 
 }
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_wyl_ffmpegtest_MainActivity_makeVideo(JNIEnv *env, jobject thiz, jstring path, jstring name) {
+Java_com_wyl_ffmpegtest_MainActivity_makeVideo(JNIEnv *env, jobject thiz, jstring path,
+                                               jstring name) {
     av_log_set_callback(FFLog::log_callback_android);
 
     //文件输出路劲
     jboolean isCopy;
     const char *output_file_path = env->GetStringUTFChars(path, &isCopy);
     const char *filename = env->GetStringUTFChars(name, &isCopy);
+    int ret = -1;
+    Encoder *encoder = new Encoder(output_file_path, 352, 288);
+    ret = encoder->open();
+    if (ret < 0) {
+        LOGE(TAG, "encoder打开失败");
+        return;
+    }
+    for (int i = 0; i < 20; ++i) {
+        AVFrame *frame = get_video_frame(encoder->enc);
+        encoder->encode(frame);
 
-    //格式上下文
+    }
+    encoder->close();
+
+
+
+    /*//格式上下文
     AVFormatContext *oc = NULL;
     //输出格式
     AVOutputFormat *fmt = NULL;
     AVCodec *video_codec = NULL;
     AVDictionary *opt = NULL;
+
+
+    AVStream *st;
+    AVCodecContext *enc;
+
     int have_video = 0;
     int encode_video = 0;
     int ret;
 
-    OutputStream video_st = {0};
 
     avformat_alloc_output_context2(&oc, fmt, NULL, filename);
     if (!oc) {
@@ -1114,17 +1136,81 @@ Java_com_wyl_ffmpegtest_MainActivity_makeVideo(JNIEnv *env, jobject thiz, jstrin
 
     if (fmt->video_codec != AV_CODEC_ID_NONE) {
         LOGE(TAG, "输出有编码器，创建stream和初始化编码器codec");
-        add_stream(&video_st, oc, &video_codec, fmt->video_codec);
+//        add_stream(&video_st, oc, &video_codec, fmt->video_codec);
+        //据id找到编码器
+        video_codec = avcodec_find_encoder(fmt->video_codec);
+        if (!(video_codec)) {
+            LOGE(TAG, "Could not find encoder for '%s'\n", avcodec_get_name(fmt->video_codec));
+            exit(1);
+        }
+
+        //新加一个流
+        st = avformat_new_stream(oc, NULL);
+
+        if (!st) {
+            LOGE(TAG, "Could not allocate stream");
+            exit(1);
+        }
+        //设置流的id
+        st->id = oc->nb_streams - 1;
+        //创建编码器上下文
+        enc = avcodec_alloc_context3(video_codec);
+        if (!enc) {
+            LOGE(TAG, "Could not alloc an encoding context");
+            exit(1);
+        }
+
+        //编码器上下文设置
+        enc->codec_id = fmt->video_codec;
+        *//* Resolution must be a multiple of two. *//*
+        enc->width = 352;
+        enc->height = 288;
+        *//* timebase: This is the fundamental unit of time (in seconds) in terms
+         * of which frame timestamps are represented. For fixed-fps content,
+         * timebase should be 1/framerate and timestamp increments should be
+         * identical to 1. *//*
+        st->time_base = (AVRational) {1, STREAM_FRAME_RATE};//设置帧率
+        enc->time_base = (AVRational) {1, STREAM_FRAME_RATE};
+
+        enc->gop_size = 12; *//* emit one intra frame every twelve frames at most *//*
+        enc->pix_fmt = STREAM_PIX_FMT;
+        if (enc->codec_id == AV_CODEC_ID_MPEG2VIDEO) {
+            *//* just for testing, we also add B-frames *//*
+            enc->max_b_frames = 2;
+        }
+        if (enc->codec_id == AV_CODEC_ID_MPEG1VIDEO) {
+            *//* Needed to avoid using macroblocks in which some coeffs overflow.
+             * This does not happen with normal video, it just happens here as
+             * the motion of the chroma plane does not match the luma plane. *//*
+            enc->mb_decision = 2;
+        }
+
+        *//* Some formats want stream headers to be separate. *//*
+        if (oc->oformat->flags & AVFMT_GLOBALHEADER)
+            enc->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
         have_video = 1;
         encode_video = 1;
     }
+
     if (have_video) {
-        open_video(oc, video_codec, &video_st, opt);
+        //打开编码器
+        ret = avcodec_open2(enc, video_codec, nullptr);
+        if (ret < 0) {
+            LOGE(TAG, "Could not open video codec: %s\n", av_err2str(ret));
+            exit(1);
+        }
+
+        *//* copy the stream parameters to the muxer *//*
+        ret = avcodec_parameters_from_context(st->codecpar, enc);
+        if (ret < 0) {
+            LOGE(TAG, "Could not copy the stream parameters");
+            exit(1);
+        }
     }
 
     av_dump_format(oc, 0, filename, 1);
 
-    /* open the output file, if needed */
+    *//* open the output file, if needed *//*
     if (!(fmt->flags & AVFMT_NOFILE)) {
         ret = avio_open(&oc->pb, output_file_path, AVIO_FLAG_READ_WRITE);
         if (ret < 0) {
@@ -1134,7 +1220,7 @@ Java_com_wyl_ffmpegtest_MainActivity_makeVideo(JNIEnv *env, jobject thiz, jstrin
         }
     }
 
-    /* Write the stream header, if any. */
+    *//* Write the stream header, if any. *//*
     ret = avformat_write_header(oc, &opt);
     if (ret < 0) {
         LOGE(TAG, "Error occurred when opening output file: %s\n",
@@ -1144,22 +1230,24 @@ Java_com_wyl_ffmpegtest_MainActivity_makeVideo(JNIEnv *env, jobject thiz, jstrin
 
     //开始写入内容
     while (encode_video) {
-        encode_video = !write_video_frame(oc, &video_st);
+        encode_video = !write_video_frame(oc, enc, st);
     }
-    /* Write the trailer, if any. The trailer must be written before you
+    *//* Write the trailer, if any. The trailer must be written before you
         * close the CodecContexts open when you wrote the header; otherwise
         * av_write_trailer() may try to use memory that was freed on
-        * av_codec_close(). */
+        * av_codec_close(). *//*
     av_write_trailer(oc);
 
-    /* Close each codec. */
-    if (have_video)
-        close_stream(oc, &video_st);
+    *//* Close each codec. *//*
+    if (have_video) {
+        avcodec_free_context(&enc);
+    }
+
 
     if (!(fmt->flags & AVFMT_NOFILE))
-        /* Close the output file. */
+        *//* Close the output file. *//*
         avio_closep(&oc->pb);
 
-    /* free the stream */
-    avformat_free_context(oc);
+    *//* free the stream *//*
+    avformat_free_context(oc);*/
 }

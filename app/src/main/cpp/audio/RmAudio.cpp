@@ -30,7 +30,7 @@ int RmAudio::startRmAudio() {
         LOGE(TAG, "输出文件打开失败");
         return RET_ERROR;
     }
-    ret = decode();
+//    ret = decode();
     if (ret < 0) {
         LOGE(TAG, "解码和编码过程有错误");
     }
@@ -224,7 +224,8 @@ int RmAudio::openOutput() {
     return RET_SUCCESS;
 }
 
-int RmAudio::decode() {
+int RmAudio::decode(Encoder *encoder) {
+    encoderCxt = encoder->enc;
     if (encoderCxt == nullptr) {
         LOGE(TAG, "编码器环境为空");
         return RET_ERROR;
@@ -296,7 +297,7 @@ int RmAudio::decode() {
 //                LOGE(TAG, "%d 帧转换成功：slice 高度：%d", index, ret);
 
                 //传递到编码器，编码
-                ret = encode(pFrame);
+                ret = encoder->encode(pFrame);
                 if (ret < 0) {
                     LOGE(TAG, "编码失败");
                     return RET_ERROR;
@@ -393,21 +394,23 @@ void RmAudio::testEncode() {
         return;
     }
 
-    ret = openOutput();
+    Encoder *encoder = new Encoder(outPath, codecCxt->width, codecCxt->height);
+    ret = encoder->open();
     if (ret < 0) {
-        LOGE(TAG, "输出文件打开失败");
-        return ;
+        LOGE(TAG, "encoder打开失败");
+        return;
     }
-    int totalFrames = 20;
-    for (int i = 0; i < totalFrames; ++i) {
+    /*for (int i = 0; i < 20; ++i) {
         AVFrame *pFrame = FrameUtil::alloc_picture(AV_PIX_FMT_YUV420P, codecCxt->width, codecCxt->height);
         FrameUtil::fill_yuv_image(pFrame, i, codecCxt->width, codecCxt->height);
-        encode(pFrame);
-    }
 
+        encoder->encode(pFrame);
+
+    }*/
+    decode(encoder);
+    encoder->close();
     if (ret < 0) {
         LOGE(TAG, "解码和编码过程有错误");
     }
-    closeOutput();
     closeInput();
 }

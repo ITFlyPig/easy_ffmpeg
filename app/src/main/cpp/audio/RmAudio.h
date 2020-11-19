@@ -10,6 +10,7 @@
 
 #include "log.h"
 #include "../utils/StringUtil.h"
+#include "../video/encoder.h"
 
 class RmAudio {
 public:
@@ -53,7 +54,7 @@ private:
     //打开输出视频文件
     int openOutput();
     //解码输入文件
-    int decode();
+    int decode(Encoder *encoder);
     //编码之前解码出来的数据
     int encode(AVFrame *decodedFrame);
 

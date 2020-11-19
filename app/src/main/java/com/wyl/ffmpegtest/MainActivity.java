@@ -179,12 +179,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 //                                }
 //                            }
 ////                            rmAudio("/sdcard/mvtest.mp4", targetPath);
-//                            testEncodeVideo(targetPath);
-                            String targetPath = "/sdcard/make_video.mp4";
-                            String name = "make_video.mp4";
+                            String targetPath = "/sdcard/encode_video.mp4";
                             if (makeFile(targetPath)) {
-                                makeVideo(targetPath, name);
+                                testEncodeVideo(targetPath);
                             }
+
+//                            String targetPath = "/sdcard/make_video.mp4";
+//                            String name = "make_video.mp4";
+//                            if (makeFile(targetPath)) {
+//                                makeVideo(targetPath, name);
+//                            }
                         } else {
                             Toast.makeText(MainActivity.this, "权限被拒绝", Toast.LENGTH_SHORT).show();
                         }

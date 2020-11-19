@@ -21,7 +21,7 @@ FILE(GLOB JNI_H ${JNI_PATH}/*.h)
 
 #video
 FILE(GLOB VIDEO_CPP ${JNI_PATH}/video/*.cpp)
-FILE(GLOB VIDEO_H ${JNI_PATH}/video/*.h)
+FILE(GLOB VIDEO_H ${JNI_PATH}/video/)
 
 #image
 FILE(GLOB IMAGE_CPP ${JNI_PATH}/image/*.cpp)
