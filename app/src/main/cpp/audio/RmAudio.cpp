@@ -265,6 +265,7 @@ int RmAudio::decode(Encoder *encoder) {
     }
     //开始解码
     int index = 0;
+    int nextPts = 0;
     while (av_read_frame(c, pPacket) == 0) {
         //确保需要解码的是视频帧
         if (pPacket->stream_index == videoIndex) {
@@ -297,6 +298,8 @@ int RmAudio::decode(Encoder *encoder) {
 //                LOGE(TAG, "%d 帧转换成功：slice 高度：%d", index, ret);
 
                 //传递到编码器，编码
+                pFrame->pts = nextPts;
+                nextPts++;
                 ret = encoder->encode(pFrame);
                 if (ret < 0) {
                     LOGE(TAG, "编码失败");
