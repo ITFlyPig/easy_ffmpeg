@@ -159,7 +159,7 @@ int RmAudio::openOutput() {
     encoderCxt->height = codecCxt->height;
     //设置时间基
 //    encoderCxt->time_base = codecCxt->time_base;
-    encoderCxt->framerate = (AVRational){25, 1};
+    encoderCxt->framerate = (AVRational) {25, 1};
     encoderCxt->time_base = (AVRational) {1, 25};
 
 //    encoderCxt->gop_size = codecCxt->gop_size;
@@ -263,6 +263,7 @@ int RmAudio::decode(Encoder *encoder) {
         LOGE(TAG, "sws_getContext 失败");
         return RET_ERROR;
     }
+
     //开始解码
     int index = 0;
     int nextPts = 0;
@@ -300,10 +301,12 @@ int RmAudio::decode(Encoder *encoder) {
                 //传递到编码器，编码
                 pFrame->pts = nextPts;
                 nextPts++;
-                ret = encoder->encode(pFrame);
-                if (ret < 0) {
-                    LOGE(TAG, "编码失败");
-                    return RET_ERROR;
+                if (encoder != nullptr) {
+                    ret = encoder->encode(pFrame);
+                    if (ret < 0) {
+                        LOGE(TAG, "编码失败");
+                        return RET_ERROR;
+                    }
                 }
 
 
@@ -416,4 +419,53 @@ void RmAudio::testEncode() {
         LOGE(TAG, "解码和编码过程有错误");
     }
     closeInput();
+}
+
+void RmAudio::reverse() {
+    int ret = RET_ERROR;
+    ret = openInput();
+    if (ret < 0) {
+        LOGE(TAG, "输入文件打开失败");
+        return;
+    }
+    AVPacket *pPacket = nullptr;
+    AVFrame * pFrame = nullptr;
+    pPacket = av_packet_alloc();
+    pFrame = av_frame_alloc();
+    int gopSize = codecCxt->gop_size;
+
+
+    int64_t lastPts = c->duration;
+    ret = av_seek_frame(c, videoIndex, lastPts, AVSEEK_FLAG_BACKWARD);
+    if (ret < 0) {
+        LOGE(TAG, "av_seek_frame 到：%d 失败", lastPts);
+        return ;
+    }
+
+    while (av_read_frame(c, pPacket) == 0) {
+        //确保需要解码的是视频帧
+        if (pPacket->stream_index == videoIndex) {
+            ret = avcodec_send_packet(codecCxt, pPacket);
+            if (ret < 0) {
+                LOGE(TAG, "Error sending a packet for decoding:%s", av_err2str(ret))
+                return;
+            }
+            while (ret >= 0) {
+                ret = avcodec_receive_frame(codecCxt, pFrame);
+                if (ret == AVERROR(EAGAIN)) {
+                    LOGE(TAG, "直接开始下次的av_read_frame 和 avcodec_send_packet");
+                    break;
+                }
+
+                if (ret < 0) {
+                    LOGE(TAG, "Error during decoding:%s", av_err2str(ret));
+                    return ;
+                }
+                av_frame_unref(pFrame);
+            }
+            av_packet_unref(pPacket);
+        }
+
+    }
+
 }

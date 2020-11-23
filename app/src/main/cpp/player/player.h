@@ -12,8 +12,13 @@
 #include <constant.h>
 #include <unistd.h>
 #include "../utils/StringUtil.h"
-
+#include <time.h>
+#include <vector>
+#include <mutex>
+#include <queue>
+#include <thread>
 #endif //FFMPEGTEST_PLAYER_H
+
 
 class Player {
 
@@ -28,17 +33,32 @@ private:
     AVCodec *codec = NULL;
     AVCodecContext *codecCxt = NULL;
 
-    pthread_t pthread;
+    std::thread th;
     AVPixelFormat m_DstFmt = AV_PIX_FMT_RGBA;//目标格式
     Opengl *opengl;
     Egl *egl;
-    ANativeWindow *aNativeWindow;
+
+    //锁
+    std::mutex mtx;
+    //条件变量
+    std::condition_variable produce, consume;
+    //存放解码后待渲染的Frame
+    std::queue<AVFrame*> rgbFrames;
+    //最多缓存的帧数
+    const int MAX_CACHE_FRAMES = 20;
+    bool isEndDecode = false;
+    int64_t last = 0;
+private:
+    int consumeFrame();
+
+     int produceFrame();
 
 public:
     char *path;
     int m_nDstWidth = 0;//目标视频宽度
     int m_nDstHeight = 0;//目标视频高度
     int delay = 0;//每帧睡眠的时间
+    ANativeWindow *aNativeWindow;
 
 public:
 
@@ -49,6 +69,12 @@ public:
     int decode();
 
     int release();
+
+    int reversePlay();
+    std::vector<int64_t> reverseDecode();
+    //seek到I帧，然后倒叙播放
+    int playByIFrame(int64_t iFramePts, int64_t lastPts);
+
 
     static void *openVideo(void *player);
 

@@ -22,6 +22,7 @@
 #include "audio/RmAudio.h"
 #include "utils/StringUtil.h"
 #include "video/encoder.h"
+#include "audio/ThreadTest.h"
 
 #define STREAM_DURATION   10.0
 #define SCALE_FLAGS SWS_BICUBIC
@@ -1054,9 +1055,18 @@ Java_com_wyl_ffmpegtest_MainActivity_openVideo(JNIEnv *env, jobject thiz, jstrin
     Player *player = new Player();
     player->m_nDstWidth = width;
     player->m_nDstHeight = height;
-    player->newThread(videoPath, nativeWindow);
+    player->path = videoPath;
+    player->aNativeWindow = nativeWindow;
+    player->reversePlay();
+//    playerObj->newThread(videoPath, nativeWindow);
 
-}extern "C"
+    /* ThreadTest *test = new ThreadTest();
+     test->startThread();*/
+
+
+}
+
+extern "C"
 JNIEXPORT void JNICALL
 Java_com_wyl_ffmpegtest_MainActivity_rmAudio(JNIEnv *env, jobject thiz, jstring src_path,
                                              jstring out_path) {
@@ -1076,7 +1086,8 @@ Java_com_wyl_ffmpegtest_MainActivity_testEncodeVideo(JNIEnv *env, jobject thiz, 
     jboolean isCopy;
     const char *target = env->GetStringUTFChars(out_path, &isCopy);
     RmAudio *rmAudio = new RmAudio("/sdcard/mvtest.mp4", target);
-    rmAudio->testEncode();
+    rmAudio->reverse();
+    //rmAudio->testEncode();
 
 }
 extern "C"
@@ -1250,4 +1261,12 @@ Java_com_wyl_ffmpegtest_MainActivity_makeVideo(JNIEnv *env, jobject thiz, jstrin
 
     *//* free the stream *//*
     avformat_free_context(oc);*/
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_wyl_ffmpegtest_MainActivity_testAudioPlay(JNIEnv *env, jobject thiz, jstring jpath) {
+    jboolean isCopy;
+    const char *path = env->GetStringUTFChars(jpath, &isCopy);
+
 }

@@ -165,7 +165,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             int width = videoSurfaceView.getWidth();
                             int height = videoSurfaceView.getHeight();
 //                renderVideo("/sdcard/mvtest.mp4", width, height, videoSurface);
-//                openVideo("/sdcard/mvtest.mp4", videoSurface, width, height);
+                            //渲染视频
+                            openVideo("/sdcard/mvtest.mp4", videoSurface, width, height);
 //                            String targetPath = getFilesDir() + File.separator +  "mvtest22.mp4";
 //                            File targetFile = new File(targetPath);
 //                            if (!targetFile.exists()) {
@@ -179,16 +180,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 //                                }
 //                            }
 ////                            rmAudio("/sdcard/mvtest.mp4", targetPath);
-                            String targetPath = "/sdcard/encode_video.mp4";
-                            if (makeFile(targetPath)) {
-                                testEncodeVideo(targetPath);
-                            }
+//                            String targetPath = "/sdcard/encode_video.mp4";
+//                            if (makeFile(targetPath)) {
+//                                testEncodeVideo(targetPath);
+//                            }
 
 //                            String targetPath = "/sdcard/make_video.mp4";
 //                            String name = "make_video.mp4";
 //                            if (makeFile(targetPath)) {
 //                                makeVideo(targetPath, name);
 //                            }
+
                         } else {
                             Toast.makeText(MainActivity.this, "权限被拒绝", Toast.LENGTH_SHORT).show();
                         }
@@ -234,4 +236,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public native void testEncodeVideo(String outPath);
 
     public native void makeVideo(String path, String name);
+
+    public native void testAudioPlay(String path);
 }

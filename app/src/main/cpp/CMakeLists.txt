@@ -45,7 +45,7 @@ FILE(GLOB CONSTANT_CPP ${JNI_PATH}/constant/*.cpp)
 #egl
 FILE(GLOB EGL_H ${JNI_PATH}/egl)
 FILE(GLOB EGL_CPP ${JNI_PATH}/egl/*.cpp)
-#player
+#playerObj
 FILE(GLOB PLAYER_H ${JNI_PATH}/player/*.h)
 FILE(GLOB PLAYER_CPP ${JNI_PATH}/player/*.cpp)
 #audio

@@ -47,6 +47,8 @@ public:
     int startRmAudio();
     //测试视频的编码
     void testEncode();
+    //翻转实验
+    void reverse();
 
 private:
     //打开输入视频文件
@@ -61,6 +63,8 @@ private:
     void closeInput();
 
     void closeOutput();
+
+
 
 
 };
