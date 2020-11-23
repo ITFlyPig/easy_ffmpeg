@@ -348,7 +348,7 @@ int RmAudio::encode(AVFrame *decodedFrame) {
             LOGE(TAG, "Error encoding a frame: %s\n", av_err2str(ret));
         }
 
-        /* rescale output packet timestamp values from codec to stream timebase */
+        /* rescale output packet timestamp values from pVideoCodec to stream timebase */
         av_packet_rescale_ts(&pkt, codecCxt->time_base, ost->time_base);
         pkt.stream_index = ost->index;
 

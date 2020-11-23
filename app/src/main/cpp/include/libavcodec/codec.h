@@ -53,9 +53,9 @@
  * Encoder or decoder requires flushing with NULL input at the end in order to
  * give the complete and correct output.
  *
- * NOTE: If this flag is not set, the codec is guaranteed to never be fed with
+ * NOTE: If this flag is not set, the pVideoCodec is guaranteed to never be fed with
  *       with NULL data. The user can still send NULL data to the public encode
- *       or decode function, but libavcodec will not pass it along to the codec
+ *       or decode function, but libavcodec will not pass it along to the pVideoCodec
  *       unless this flag is set.
  *
  * Decoders:
@@ -157,7 +157,7 @@
 #define AV_CODEC_CAP_HYBRID              (1 << 19)
 
 /**
- * This codec takes the reordered_opaque field from input AVFrames
+ * This pVideoCodec takes the reordered_opaque field from input AVFrames
  * and returns it in the corresponding field in AVCodecContext after
  * encoding.
  */
@@ -189,14 +189,14 @@ struct AVPacket;
  */
 typedef struct AVCodec {
     /**
-     * Name of the codec implementation.
+     * Name of the pVideoCodec implementation.
      * The name is globally unique among encoders and among decoders (but an
      * encoder and a decoder can share the same name).
-     * This is the primary way to find a codec from the user perspective.
+     * This is the primary way to find a pVideoCodec from the user perspective.
      */
     const char *name;
     /**
-     * Descriptive name for the codec, meant to be more human readable than name.
+     * Descriptive name for the pVideoCodec, meant to be more human readable than name.
      * You should use the NULL_IF_CONFIG_SMALL() macro to define it.
      */
     const char *long_name;
@@ -217,12 +217,12 @@ typedef struct AVCodec {
     const AVProfile *profiles;              ///< array of recognized profiles, or NULL if unknown, array is terminated by {FF_PROFILE_UNKNOWN}
 
     /**
-     * Group name of the codec implementation.
-     * This is a short symbolic name of the wrapper backing this codec. A
-     * wrapper uses some kind of external implementation for the codec, such
-     * as an external library, or a codec implementation provided by the OS or
+     * Group name of the pVideoCodec implementation.
+     * This is a short symbolic name of the wrapper backing this pVideoCodec. A
+     * wrapper uses some kind of external implementation for the pVideoCodec, such
+     * as an external library, or a pVideoCodec implementation provided by the OS or
      * the hardware.
-     * If this field is NULL, this is a builtin, libavcodec native codec.
+     * If this field is NULL, this is a builtin, libavcodec native pVideoCodec.
      * If non-NULL, this will be the suffix in AVCodec.name in most cases
      * (usually AVCodec.name will be of the form "<codec_name>_<wrapper_name>").
      */
@@ -243,7 +243,7 @@ typedef struct AVCodec {
      */
     /**
      * Copy necessary context variables from a previous thread context to the current one.
-     * If not defined, the next thread will start automatically; otherwise, the codec
+     * If not defined, the next thread will start automatically; otherwise, the pVideoCodec
      * must call ff_thread_finish_setup().
      *
      * dst and src will (rarely) point to the same context, in which case memcpy should be skipped.
@@ -252,15 +252,15 @@ typedef struct AVCodec {
     /** @} */
 
     /**
-     * Private codec-specific defaults.
+     * Private pVideoCodec-specific defaults.
      */
     const AVCodecDefault *defaults;
 
     /**
-     * Initialize codec static data, called from avcodec_register().
+     * Initialize pVideoCodec static data, called from avcodec_register().
      *
      * This is not intended for time consuming operations as it is
-     * run for every codec regardless of that codec being used.
+     * run for every pVideoCodec regardless of that pVideoCodec being used.
      */
     void (*init_static_data)(struct AVCodec *codec);
 
@@ -270,7 +270,7 @@ typedef struct AVCodec {
     /**
      * Encode data to an AVPacket.
      *
-     * @param      avctx          codec context
+     * @param      avctx          pVideoCodec context
      * @param      avpkt          output AVPacket (may contain a user-provided buffer)
      * @param[in]  frame          AVFrame containing the raw data to be encoded
      * @param[out] got_packet_ptr encoder sets to 0 or 1 to indicate that a
@@ -300,7 +300,7 @@ typedef struct AVCodec {
      */
     void (*flush)(struct AVCodecContext *);
     /**
-     * Internal codec capabilities.
+     * Internal pVideoCodec capabilities.
      * See FF_CODEC_CAP_* in internal.h
      */
     int caps_internal;
@@ -312,7 +312,7 @@ typedef struct AVCodec {
     const char *bsfs;
 
     /**
-     * Array of pointers to hardware configurations supported by the codec,
+     * Array of pointers to hardware configurations supported by the pVideoCodec,
      * or NULL if no hardware supported.  The array is terminated by a NULL
      * pointer.
      *
@@ -332,13 +332,13 @@ typedef struct AVCodec {
  * @param opaque a pointer where libavcodec will store the iteration state. Must
  *               point to NULL to start the iteration.
  *
- * @return the next registered codec or NULL when the iteration is
+ * @return the next registered pVideoCodec or NULL when the iteration is
  *         finished
  */
 const AVCodec *av_codec_iterate(void **opaque);
 
 /**
- * Find a registered decoder with a matching codec ID.
+ * Find a registered decoder with a matching pVideoCodec ID.
  *
  * @param id AVCodecID of the requested decoder
  * @return A decoder if one was found, NULL otherwise.
@@ -354,7 +354,7 @@ AVCodec *avcodec_find_decoder(enum AVCodecID id);
 AVCodec *avcodec_find_decoder_by_name(const char *name);
 
 /**
- * Find a registered encoder with a matching codec ID.
+ * Find a registered encoder with a matching pVideoCodec ID.
  *
  * @param id AVCodecID of the requested encoder
  * @return An encoder if one was found, NULL otherwise.
@@ -369,18 +369,18 @@ AVCodec *avcodec_find_encoder(enum AVCodecID id);
  */
 AVCodec *avcodec_find_encoder_by_name(const char *name);
 /**
- * @return a non-zero number if codec is an encoder, zero otherwise
+ * @return a non-zero number if pVideoCodec is an encoder, zero otherwise
  */
 int av_codec_is_encoder(const AVCodec *codec);
 
 /**
- * @return a non-zero number if codec is a decoder, zero otherwise
+ * @return a non-zero number if pVideoCodec is a decoder, zero otherwise
  */
 int av_codec_is_decoder(const AVCodec *codec);
 
 enum {
     /**
-     * The codec supports this format via the hw_device_ctx interface.
+     * The pVideoCodec supports this format via the hw_device_ctx interface.
      *
      * When selecting this format, AVCodecContext.hw_device_ctx should
      * have been set to a device of the specified type before calling
@@ -388,7 +388,7 @@ enum {
      */
     AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX = 0x01,
     /**
-     * The codec supports this format via the hw_frames_ctx interface.
+     * The pVideoCodec supports this format via the hw_frames_ctx interface.
      *
      * When selecting this format for a decoder,
      * AVCodecContext.hw_frames_ctx should be set to a suitable frames
@@ -401,17 +401,17 @@ enum {
      */
     AV_CODEC_HW_CONFIG_METHOD_HW_FRAMES_CTX = 0x02,
     /**
-     * The codec supports this format by some internal method.
+     * The pVideoCodec supports this format by some internal method.
      *
      * This format can be selected without any additional configuration -
      * no device or frames context is required.
      */
     AV_CODEC_HW_CONFIG_METHOD_INTERNAL      = 0x04,
     /**
-     * The codec supports this format by some ad-hoc method.
+     * The pVideoCodec supports this format by some ad-hoc method.
      *
      * Additional settings and/or function calls are required.  See the
-     * codec-specific documentation for details.  (Methods requiring
+     * pVideoCodec-specific documentation for details.  (Methods requiring
      * this sort of configuration are deprecated and others should be
      * used in preference.)
      */
@@ -425,7 +425,7 @@ typedef struct AVCodecHWConfig {
      *
      * For encoders, a pixel format which the encoder may be able to
      * accept.  If set to AV_PIX_FMT_NONE, this applies to all pixel
-     * formats supported by the codec.
+     * formats supported by the pVideoCodec.
      */
     enum AVPixelFormat pix_fmt;
     /**
@@ -443,10 +443,10 @@ typedef struct AVCodecHWConfig {
 } AVCodecHWConfig;
 
 /**
- * Retrieve supported hardware configurations for a codec.
+ * Retrieve supported hardware configurations for a pVideoCodec.
  *
  * Values of index from zero to some maximum return the indexed configuration
- * descriptor; all other values return NULL.  If the codec does not support
+ * descriptor; all other values return NULL.  If the pVideoCodec does not support
  * any hardware configurations then it will always return NULL.
  */
 const AVCodecHWConfig *avcodec_get_hw_config(const AVCodec *codec, int index);

@@ -79,7 +79,7 @@
 
 /** Channel mask value used for AVCodecContext.request_channel_layout
     to indicate that the user requests the channel order of the decoder output
-    to be the native codec channel order. */
+    to be the native pVideoCodec channel order. */
 #define AV_CH_LAYOUT_NATIVE          0x8000000000000000ULL
 
 /**

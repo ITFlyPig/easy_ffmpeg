@@ -9,17 +9,13 @@
 #include <SLES/OpenSLES_Android.h>
 #include "log.h"
 #include "PcmProvider.h"
+#include "MediaProvider.h"
 
 class RenderAudio {
 private:
-    //据传入的采样率，转为opengles识别的采样率
-    int OpenSLSampleRate(SLuint32 sampleRate);
-
     //据声道数，返回opengles识别的声道：立体声 | 单声道
     int GetChannelMask(int channels);
 
-    //设置播放的音量
-    void setPlayVolume(int percent);
 
 private:
     SLObjectItf engineObj = NULL;//用SLObjectItf声明引擎接口对象
@@ -40,10 +36,10 @@ private:
 
     int channels;//声道数
     long sampleRate;//采样率
-    PcmProvider *pcmProvider;
+    MediaProvider *pcmProvider;
 
 public:
-    RenderAudio(int channels, long sampleRate, PcmProvider *pcmProvider);
+    RenderAudio(int channels, long sampleRate, MediaProvider *pcmProvider);
 
 public:
     const char *path;
@@ -54,6 +50,10 @@ public:
 
     //将pcm数据送入到opengles的播放队列
     int enqueuePcm();
+    //设置播放的音量
+    void setPlayVolume(int percent);
+    //据传入的采样率，转为opengles识别的采样率
+    int OpenSLSampleRate(SLuint32 sampleRate);
 };
 
 #endif //FFMPEGTEST_RENDERAUDIO_H

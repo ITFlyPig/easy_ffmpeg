@@ -42,7 +42,7 @@
  * @addtogroup lavu_video_stereo3d
  * A stereoscopic video file consists in multiple views embedded in a single
  * frame, usually describing two views of a scene. This file describes all
- * possible codec-independent view arrangements.
+ * possible pVideoCodec-independent view arrangements.
  * */
 
 /**

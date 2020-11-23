@@ -3,4 +3,4 @@
 //
 #include "PcmInfo.h"
 
-PcmInfo::PcmInfo(void *data, int size) : data(data), size(size) {}
+PcmInfo::PcmInfo(void *data, long size) : data(data), size(size) {}

@@ -82,7 +82,7 @@ typedef struct AVVideoEncParams {
     size_t block_size;
 
     /**
-     * Type of the parameters (the codec they are used with).
+     * Type of the parameters (the pVideoCodec they are used with).
      */
     enum AVVideoEncParamsType type;
 

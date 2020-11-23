@@ -50,13 +50,13 @@ int RenderAudio::open() {
     //音频格式
     SLDataFormat_PCM pcm = {
             SL_DATAFORMAT_PCM,////播放pcm格式的数据
-            (SLuint32) channels,//    声道数
+            (SLuint32) 2,// 2个声道（立体声）
 //            (SLuint32) parameter.sample_rate * 1000,
             static_cast<SLuint32>(OpenSLSampleRate(sampleRate)),//采样率
             SL_PCMSAMPLEFORMAT_FIXED_16,//采样位数
             SL_PCMSAMPLEFORMAT_FIXED_16,
 //            SL_SPEAKER_FRONT_LEFT | SL_SPEAKER_FRONT_RIGHT,
-            static_cast<SLuint32>(GetChannelMask(channels)),//立体声或者单声道
+            static_cast<SLuint32>(GetChannelMask(2)),//立体声或者单声道
             SL_BYTEORDER_LITTLEENDIAN //结束标志
     };
     SLDataSource dataSource = {&que, &pcm};
@@ -235,6 +235,12 @@ int RenderAudio::enqueuePcm() {
     }
     SLresult result;
     result = (*iPcmBufferQueue)->Enqueue(iPcmBufferQueue, pcmInfo->data, pcmInfo->size);
+    //释放使用之后的内存
+    if (pcmInfo->data != nullptr) {
+        free(pcmInfo->data);
+    }
+    delete pcmInfo;
+
     if (result != SL_RESULT_SUCCESS) {
         LOGE(TAG, "enqueuePcm 向opengles 音频队列提供数据失败");
         return RET_ERROR;
@@ -242,7 +248,7 @@ int RenderAudio::enqueuePcm() {
     return RET_SUCCESS;
 }
 
-RenderAudio::RenderAudio(int channels, long sampleRate, PcmProvider *pcmProvider) : channels(
+RenderAudio::RenderAudio(int channels, long sampleRate, MediaProvider *pcmProvider) : channels(
         channels), sampleRate(sampleRate), pcmProvider(pcmProvider) {}
 
 

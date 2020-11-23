@@ -16,6 +16,7 @@ extern "C" {
 #include "libavutil/timestamp.h"
 #include "libavutil/imgutils.h"
 #include "libswresample/swresample.h"
+#include <libavutil/opt.h>
 }
 
 #define LOGD(TAG, FORMAT, ...) __android_log_print(ANDROID_LOG_DEBUG,TAG,FORMAT,##__VA_ARGS__);

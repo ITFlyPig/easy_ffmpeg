@@ -107,8 +107,8 @@ AVVDPAU_Render2 av_vdpau_hwaccel_get_render2(const AVVDPAUContext *);
 void av_vdpau_hwaccel_set_render2(AVVDPAUContext *, AVVDPAU_Render2);
 
 /**
- * Associate a VDPAU device with a codec context for hardware acceleration.
- * This function is meant to be called from the get_format() codec callback,
+ * Associate a VDPAU device with a pVideoCodec context for hardware acceleration.
+ * This function is meant to be called from the get_format() pVideoCodec callback,
  * or earlier. It can also be called after avcodec_flush_buffers() to change
  * the underlying VDPAU device mid-stream (e.g. to recover from non-transparent
  * display preemption).
@@ -127,13 +127,13 @@ int av_vdpau_bind_context(AVCodecContext *avctx, VdpDevice device,
                           VdpGetProcAddress *get_proc_address, unsigned flags);
 
 /**
- * Gets the parameters to create an adequate VDPAU video surface for the codec
+ * Gets the parameters to create an adequate VDPAU video surface for the pVideoCodec
  * context using VDPAU hardware decoding acceleration.
  *
  * @note Behavior is undefined if the context was not successfully bound to a
  * VDPAU device using av_vdpau_bind_context().
  *
- * @param avctx the codec context being used for decoding the stream
+ * @param avctx the pVideoCodec context being used for decoding the stream
  * @param type storage space for the VDPAU video surface chroma type
  *              (or NULL to ignore)
  * @param width storage space for the VDPAU video surface pixel width
@@ -160,7 +160,7 @@ AVVDPAUContext *av_vdpau_alloc_context(void);
  *
  * @deprecated Use av_vdpau_bind_context() instead.
  *
- * @param avctx the codec context being used for decoding the stream
+ * @param avctx the pVideoCodec context being used for decoding the stream
  * @param profile a pointer into which the result will be written on success.
  *                The contents of profile are undefined if this function returns
  *                an error.

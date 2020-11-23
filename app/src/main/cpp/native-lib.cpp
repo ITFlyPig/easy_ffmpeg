@@ -23,6 +23,7 @@
 #include "utils/StringUtil.h"
 #include "video/encoder.h"
 #include "audio/ThreadTest.h"
+#include "audio/MediaPlayer.h"
 
 #define STREAM_DURATION   10.0
 #define SCALE_FLAGS SWS_BICUBIC
@@ -163,7 +164,7 @@ void open_video(AVFormatContext *oc, AVCodec *codec, OutputStream *ost, AVDictio
     //打开编码器
     ret = avcodec_open2(c, codec, nullptr);
     if (ret < 0) {
-        LOGE(TAG, "Could not open video codec: %s\n", av_err2str(ret));
+        LOGE(TAG, "Could not open video pVideoCodec: %s\n", av_err2str(ret));
         exit(1);
     }
 
@@ -253,7 +254,7 @@ AVFrame *get_video_frame(AVCodecContext *enc) {
 //
 //    if (c->pix_fmt != AV_PIX_FMT_YUV420P) {
 //        /* as we only generate a YUV420P picture, we must convert it
-//         * to the codec pixel format if needed */
+//         * to the pVideoCodec pixel format if needed */
 //        if (!ost->sws_ctx) {
 //            ost->sws_ctx = sws_getContext(c->width, c->height,
 //                                          AV_PIX_FMT_YUV420P,
@@ -323,7 +324,7 @@ int write_frame(AVFormatContext *fmt_ctx, AVCodecContext *c,
             LOGE(TAG, "Error encoding a frame: %s\n", av_err2str(ret));
         }
 
-        /* rescale output packet timestamp values from codec to stream timebase */
+        /* rescale output packet timestamp values from pVideoCodec to stream timebase */
         av_packet_rescale_ts(&pkt, c->time_base, st->time_base);
         pkt.stream_index = st->index;
 
@@ -433,7 +434,7 @@ Java_com_wyl_ffmpegtest_MainActivity_makeMediaFile(JNIEnv *env, jobject thiz) {
         * av_codec_close(). */
     av_write_trailer(oc);
 
-    /* Close each codec. */
+    /* Close each pVideoCodec. */
     if (have_video)
         close_stream(oc, &video_st);
 
@@ -1207,7 +1208,7 @@ Java_com_wyl_ffmpegtest_MainActivity_makeVideo(JNIEnv *env, jobject thiz, jstrin
         //打开编码器
         ret = avcodec_open2(enc, video_codec, nullptr);
         if (ret < 0) {
-            LOGE(TAG, "Could not open video codec: %s\n", av_err2str(ret));
+            LOGE(TAG, "Could not open video pVideoCodec: %s\n", av_err2str(ret));
             exit(1);
         }
 
@@ -1249,7 +1250,7 @@ Java_com_wyl_ffmpegtest_MainActivity_makeVideo(JNIEnv *env, jobject thiz, jstrin
         * av_codec_close(). *//*
     av_write_trailer(oc);
 
-    *//* Close each codec. *//*
+    *//* Close each pVideoCodec. *//*
     if (have_video) {
         avcodec_free_context(&enc);
     }
@@ -1268,5 +1269,12 @@ JNIEXPORT void JNICALL
 Java_com_wyl_ffmpegtest_MainActivity_testAudioPlay(JNIEnv *env, jobject thiz, jstring jpath) {
     jboolean isCopy;
     const char *path = env->GetStringUTFChars(jpath, &isCopy);
+    MediaPlayer *mediaPlayer = new MediaPlayer(path);
+    if (mediaPlayer->open() < 0) {
+        LOGE(TAG, "MediaPlayer 打开媒体文件失败");
+        return;
+    }
+    mediaPlayer->decode();
+    mediaPlayer->close();
 
 }

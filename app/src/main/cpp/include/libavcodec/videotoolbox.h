@@ -70,7 +70,7 @@ typedef struct AVVideotoolboxContext {
     CMVideoFormatDescriptionRef cm_fmt_desc;
 
     /**
-     * CoreMedia codec type that Videotoolbox will use to create the decompression session.
+     * CoreMedia pVideoCodec type that Videotoolbox will use to create the decompression session.
      * Set by the caller.
      */
     int cm_codec_type;
@@ -95,7 +95,7 @@ AVVideotoolboxContext *av_videotoolbox_alloc_context(void);
  * This is a convenience function that creates and sets up the Videotoolbox context using
  * an internal implementation.
  *
- * @param avctx the corresponding codec context
+ * @param avctx the corresponding pVideoCodec context
  *
  * @return >= 0 on success, a negative AVERROR code on failure
  */
@@ -105,7 +105,7 @@ int av_videotoolbox_default_init(AVCodecContext *avctx);
  * This is a convenience function that creates and sets up the Videotoolbox context using
  * an internal implementation.
  *
- * @param avctx the corresponding codec context
+ * @param avctx the corresponding pVideoCodec context
  * @param vtctx the Videotoolbox context to use
  *
  * @return >= 0 on success, a negative AVERROR code on failure
@@ -116,7 +116,7 @@ int av_videotoolbox_default_init2(AVCodecContext *avctx, AVVideotoolboxContext *
  * This function must be called to free the Videotoolbox context initialized with
  * av_videotoolbox_default_init().
  *
- * @param avctx the corresponding codec context
+ * @param avctx the corresponding pVideoCodec context
  */
 void av_videotoolbox_default_free(AVCodecContext *avctx);
 

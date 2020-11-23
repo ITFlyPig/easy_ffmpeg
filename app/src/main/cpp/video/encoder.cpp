@@ -85,7 +85,7 @@ int Encoder::open() {
     //打开编码器
     ret = avcodec_open2(enc, video_codec, nullptr);
     if (ret < 0) {
-        LOGE(TAG, "Could not open video codec: %s\n", av_err2str(ret));
+        LOGE(TAG, "Could not open video pVideoCodec: %s\n", av_err2str(ret));
         return RET_ERROR;
     }
 
@@ -139,7 +139,7 @@ int Encoder::encode(AVFrame *frame) {
             LOGE(TAG, "Error encoding a frame: %s\n", av_err2str(ret));
         }
 
-        /* rescale output packet timestamp values from codec to stream timebase */
+        /* rescale output packet timestamp values from pVideoCodec to stream timebase */
         av_packet_rescale_ts(&pkt, enc->time_base, st->time_base);
         pkt.stream_index = st->index;
 
@@ -156,7 +156,7 @@ int Encoder::encode(AVFrame *frame) {
 
 void Encoder::close() {
     av_write_trailer(oc);
-    /* Close each codec. */
+    /* Close each pVideoCodec. */
     avcodec_free_context(&enc);
 
 

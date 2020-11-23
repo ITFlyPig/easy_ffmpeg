@@ -112,7 +112,7 @@
  *      It may happen that an AVOptions-enabled struct contains another
  *      AVOptions-enabled struct as a member (e.g. AVCodecContext in
  *      libavcodec exports generic options, while its priv_data field exports
- *      codec-specific options). In such a case, it is possible to set up the
+ *      pVideoCodec-specific options). In such a case, it is possible to set up the
  *      parent struct to export a child's options. To do that, simply
  *      implement AVClass.child_next() and AVClass.child_class_iterate() in the
  *      parent struct's AVClass.
@@ -159,7 +159,7 @@
  *      and child_class_iterate() are needed. The distinction is that child_next()
  *      iterates over actually existing objects, while child_class_iterate()
  *      iterates over all possible child classes. E.g. if an AVCodecContext
- *      was initialized to use a codec which has private options, then its
+ *      was initialized to use a pVideoCodec which has private options, then its
  *      child_next() will return AVCodecContext.priv_data and finish
  *      iterating. OTOH child_class_iterate() on AVCodecContext.av_class will
  *      iterate over all available codecs with private options.
@@ -214,7 +214,7 @@
  *
  * In some cases it may be more convenient to put all options into an
  * AVDictionary and call av_opt_set_dict() on it. A specific case of this
- * are the format/codec open functions in lavf/lavc which take a dictionary
+ * are the format/pVideoCodec open functions in lavf/lavc which take a dictionary
  * filled with option as a parameter. This makes it possible to set some options
  * that cannot be set otherwise, since e.g. the input file format is not known
  * before the file is actually opened.

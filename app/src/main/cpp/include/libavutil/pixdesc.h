@@ -172,7 +172,7 @@ typedef struct AVPixFmtDescriptor {
  * support alpha in some way, including AV_PIX_FMT_PAL8. The alpha is always
  * straight, never pre-multiplied.
  *
- * If a codec or a filter does not support alpha, it should set all alpha to
+ * If a pVideoCodec or a filter does not support alpha, it should set all alpha to
  * opaque, or use the equivalent pixel formats without alpha component, e.g.
  * AV_PIX_FMT_RGB0 (or AV_PIX_FMT_RGB24 etc.) instead of AV_PIX_FMT_RGBA.
  */

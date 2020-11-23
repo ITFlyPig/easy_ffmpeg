@@ -9,10 +9,10 @@ class PcmInfo {
 
 
 public:
-    PcmInfo(void *data, int size);
+    PcmInfo( void *data, long size);
 
 //存Pcm数据地址
-    const void *data;
+    void *data;
 
 //数据的大小
     long size;

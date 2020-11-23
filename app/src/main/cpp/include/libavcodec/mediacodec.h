@@ -52,7 +52,7 @@ AVMediaCodecContext *av_mediacodec_alloc_context(void);
 /**
  * Convenience function that sets up the MediaCodec context.
  *
- * @param avctx codec context
+ * @param avctx pVideoCodec context
  * @param ctx MediaCodec context to initialize
  * @param surface reference to an android/view/Surface
  * @return 0 on success, < 0 otherwise
@@ -63,7 +63,7 @@ int av_mediacodec_default_init(AVCodecContext *avctx, AVMediaCodecContext *ctx, 
  * This function must be called to free the MediaCodec context initialized with
  * av_mediacodec_default_init().
  *
- * @param avctx codec context
+ * @param avctx pVideoCodec context
  */
 void av_mediacodec_default_free(AVCodecContext *avctx);
 
@@ -75,7 +75,7 @@ typedef struct MediaCodecBuffer AVMediaCodecBuffer;
 /**
  * Release a MediaCodec buffer and render it to the surface that is associated
  * with the decoder. This function should only be called once on a given
- * buffer, once released the underlying buffer returns to the codec, thus
+ * buffer, once released the underlying buffer returns to the pVideoCodec, thus
  * subsequent calls to this function will have no effect.
  *
  * @param buffer the buffer to render

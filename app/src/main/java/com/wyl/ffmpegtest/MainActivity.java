@@ -161,12 +161,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 PermissionRequestUtil.request(MainActivity.this, new PermissionListener() {
                     @Override
                     public void onResult(String[] permission, boolean[] grantedResults) {
-                        if (grantedResults.length == 2 && grantedResults[0] && grantedResults[1]) {
+                        if (grantedResults.length == 3) {
                             int width = videoSurfaceView.getWidth();
                             int height = videoSurfaceView.getHeight();
 //                renderVideo("/sdcard/mvtest.mp4", width, height, videoSurface);
                             //渲染视频
-                            openVideo("/sdcard/mvtest.mp4", videoSurface, width, height);
+//                            openVideo("/sdcard/mvtest.mp4", videoSurface, width, height);
 //                            String targetPath = getFilesDir() + File.separator +  "mvtest22.mp4";
 //                            File targetFile = new File(targetPath);
 //                            if (!targetFile.exists()) {
@@ -191,12 +191,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 //                                makeVideo(targetPath, name);
 //                            }
 
+
+                            testAudioPlay("/sdcard/mvtest.mp4");
                         } else {
                             Toast.makeText(MainActivity.this, "权限被拒绝", Toast.LENGTH_SHORT).show();
                         }
 
                     }
-                }, Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE);
+                }, Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.RECORD_AUDIO);
 
                 break;
             default:
