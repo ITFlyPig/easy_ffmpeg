@@ -1266,15 +1266,37 @@ Java_com_wyl_ffmpegtest_MainActivity_makeVideo(JNIEnv *env, jobject thiz, jstrin
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_wyl_ffmpegtest_MainActivity_testAudioPlay(JNIEnv *env, jobject thiz, jstring jpath) {
+Java_com_wyl_ffmpegtest_MainActivity_testAudioPlay(JNIEnv *env, jobject thiz, jstring jpath,
+                                                   jobject surface, jint width, jint height) {
+    ANativeWindow *nativeWindow = ANativeWindow_fromSurface(env, surface);
+    if (nativeWindow == nullptr) {
+        LOGE(TAG, "ANativeWindow创建失败");
+        return;
+    }
     jboolean isCopy;
     const char *path = env->GetStringUTFChars(jpath, &isCopy);
-    MediaPlayer *mediaPlayer = new MediaPlayer(path);
+    MediaPlayer *mediaPlayer = new MediaPlayer(path, width, height);
     if (mediaPlayer->open() < 0) {
         LOGE(TAG, "MediaPlayer 打开媒体文件失败");
         return;
     }
+    //初始化Egl
+    Egl *egl = new Egl();
+    if (egl->open(nativeWindow) < 0) {
+        LOGE(TAG, "Egl初始化失败");
+        return;
+    }
+    mediaPlayer->egl = egl;
+    //初始化OpenGL
+    Opengl *opengl = new Opengl();
+    if (!opengl->CreateProgram()) {
+        LOGE(TAG, "OpenGL 初始化失败");
+        return;
+    } else {
+        LOGE(TAG, "OpenGL 初始化成功");
+    }
+    mediaPlayer->opengl = opengl;
+
     mediaPlayer->decode();
     mediaPlayer->close();
-
 }

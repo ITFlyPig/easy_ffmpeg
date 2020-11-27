@@ -12,7 +12,7 @@ extern "C" {
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 }
-#endif //FFMPEGTEST_OGL_H
+
 
 class Opengl {
 private:
@@ -26,3 +26,5 @@ public:
     bool linkShader();
     GLuint loadShader(const char *code, GLint type);
 };
+
+#endif //FFMPEGTEST_OGL_H

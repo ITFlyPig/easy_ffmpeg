@@ -3,6 +3,7 @@
 //
 
 #include "MediaPlayer.h"
+#include "../utils/FrameUtil.h"
 
 static int RET_ERROR = -1;
 static int RET_SUCCESS = 1;
@@ -76,10 +77,8 @@ int MediaPlayer::open() {
             LOGE(TAG, "创建音频播放器失败");
             return RET_ERROR;
         }
-        renderAudio->setPlayVolume(10);
+        renderAudio->setPlayVolume(2);
     }
-
-
     return RET_SUCCESS;
 }
 
@@ -138,8 +137,8 @@ int MediaPlayer::decode() {
     AVFrame *pFrame = NULL;
     AVFrame *pAudioFrame = NULL;
     AVPacket *pPacket = NULL;
-    SwsContext *pSwsCxt = NULL;
     SwrContext *pAudioSwsCxt = nullptr;
+    SwsContext *pVideoSwsCxt;
     int ret = RET_ERROR;
 
     pPacket = av_packet_alloc();
@@ -154,6 +153,16 @@ int MediaPlayer::decode() {
         return RET_ERROR;
     }
 
+    //Video 格式转换
+    pVideoSwsCxt = sws_getContext(pVideoCodecCxt->width, pVideoCodecCxt->height,
+                                  pVideoCodecCxt->pix_fmt,
+                                  nDstWidth, nDstHeight, mDstFmt,
+                                  SWS_FAST_BILINEAR, NULL, NULL, NULL);
+    if (pVideoSwsCxt == nullptr) {
+        LOGE(TAG, "sws_getContext 创建pVideoSwsCxt失败");
+        return RET_ERROR;
+    }
+
     pAudioFrame = av_frame_alloc();
     if (pAudioFrame == NULL) {
         LOGE(TAG, " Audio Frame申请失败");
@@ -163,7 +172,6 @@ int MediaPlayer::decode() {
     //目标采样率
     int outSampleRate = renderAudio->OpenSLSampleRate(pAudioCodecCxt->sample_rate);
     //音频转换器
-
     pAudioSwsCxt = swr_alloc();
     // 配置输入/输出通道类型
     av_opt_set_int(pAudioSwsCxt, "in_channel_layout", pAudioCodecCxt->channel_layout, 0);
@@ -182,7 +190,7 @@ int MediaPlayer::decode() {
 
     // 重采样后一个通道采样数
     int outNbSample = (int) av_rescale_rnd(ACC_NB_SAMPLES, AUDIO_DST_SAMPLE_RATE,
-                                                pAudioCodecCxt->sample_rate, AV_ROUND_UP);
+                                           pAudioCodecCxt->sample_rate, AV_ROUND_UP);
     //重采样后一帧音频的大小
     int outDataSize = (size_t) av_samples_get_buffer_size(
             NULL,
@@ -214,6 +222,23 @@ int MediaPlayer::decode() {
                 }
                 LOGD(TAG, "视频帧%d解码成功", videoCount);
                 videoCount++;
+                //开始格式转换
+                AVFrame *pRGBFame = FrameUtil::alloc_picture(mDstFmt, nDstWidth, nDstHeight);
+                if (pRGBFame == nullptr) {
+                    LOGE(TAG, "alloc_picture 申请Frame失败");
+                    continue;
+                }
+                ret = sws_scale(pVideoSwsCxt, pFrame->data, pFrame->linesize, 0, pFrame->height,
+                        pRGBFame->data, pRGBFame->linesize);
+                if (ret < 0) {
+                    LOGE(TAG, "sws_scale 转换失败:%s", av_err2str(ret));
+                    return RET_ERROR;
+                }
+                //开始渲染
+                opengl->draw(pRGBFame->data[0], nDstWidth, nDstHeight, egl->eglDisplay,
+                             egl->eglSurface);
+
+                av_frame_free(&pRGBFame);
             }
 
         } else if (pPacket->stream_index == audioIndex) {//音频数据
@@ -233,12 +258,14 @@ int MediaPlayer::decode() {
                 }
                 LOGD(TAG, "音频帧%d解码成功", audioCount);
 //                LOGD(TAG, "是否是平面音频数据:%d", av_sample_fmt_is_planar(pAudioCodecCxt->sample_fmt))
-                uint8_t * audioOutBuffer = (uint8_t *) malloc(outDataSize);
-                //3. 重采样，frame 为解码帧
-                ret = swr_convert(pAudioSwsCxt, &audioOutBuffer, outDataSize / 2, (const uint8_t **) pFrame->data, pFrame->nb_samples);
-                if (ret > 0 ) {
+                uint8_t *audioOutBuffer = (uint8_t *) malloc(outDataSize);
+                //重采样，frame 为解码帧
+                ret = swr_convert(pAudioSwsCxt, &audioOutBuffer, outDataSize / 2,
+                                  (const uint8_t **) pFrame->data, pFrame->nb_samples);
+                if (ret > 0) {
+                    //计算当前音频帧的pts
                     LOGD(TAG, "音频帧%d重采样成功", audioCount);
-                    PcmInfo *pcmInfo = new PcmInfo(audioOutBuffer, outDataSize);
+                    PcmInfo *pcmInfo = new PcmInfo(audioOutBuffer, outDataSize, 0);
                     mediaProvider->produce(pcmInfo);
                 }
 
@@ -257,13 +284,16 @@ int MediaPlayer::decode() {
     av_frame_free(&pFrame);
     pFrame = nullptr;
 
-    sws_freeContext(pSwsCxt);
-    pSwsCxt = nullptr;
+    sws_freeContext(pVideoSwsCxt);
+    pVideoSwsCxt = nullptr;
     return RET_SUCCESS;
 }
 
 
-MediaPlayer::MediaPlayer(const char *path) : path(path) {}
+MediaPlayer::MediaPlayer(const char *path, int nDstWidth, int nDstHeight) : path(path),
+                                                                            nDstWidth(nDstWidth),
+                                                                            nDstHeight(
+                                                                                    nDstHeight) {}
 
 int MediaPlayer::decodeFrame(AVMediaType mediaType, AVCodecContext *codecCxt, AVPacket *pkt,
                              AVFrame *pFrame,

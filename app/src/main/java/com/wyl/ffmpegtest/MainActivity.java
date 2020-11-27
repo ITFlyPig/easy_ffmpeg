@@ -192,7 +192,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 //                            }
 
 
-                            testAudioPlay("/sdcard/mvtest.mp4");
+                            testAudioPlay("/sdcard/mvtest.mp4", videoSurface, width, height);
                         } else {
                             Toast.makeText(MainActivity.this, "权限被拒绝", Toast.LENGTH_SHORT).show();
                         }
@@ -239,5 +239,5 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     public native void makeVideo(String path, String name);
 
-    public native void testAudioPlay(String path);
+    public native void testAudioPlay(String path, Surface surface, int width, int height);
 }

@@ -13,9 +13,6 @@ extern "C" {
 #include <GLES2/gl2.h>
 }
 
-#endif //FFMPEGTEST_EGL_H
-
-
 class Egl {
 public:
     EGLDisplay eglDisplay;
@@ -30,3 +27,5 @@ public:
 
     int render(void *pixel);
 };
+
+#endif //FFMPEGTEST_EGL_H
