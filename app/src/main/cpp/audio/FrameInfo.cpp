@@ -4,3 +4,5 @@
 #include "FrameInfo.h"
 
 FrameInfo::FrameInfo(void *data, long size, int64_t pts) : data(data), size(size), pts(pts) {}
+
+FrameInfo::FrameInfo(AVFrame *videoFrame) : videoFrame(videoFrame) {}

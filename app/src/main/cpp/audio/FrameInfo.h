@@ -5,7 +5,7 @@
 #ifndef FFMPEGTEST_FRAMEINFO_H
 #define FFMPEGTEST_FRAMEINFO_H
 
-#include <cstdlib>
+#include "log.h"
 
 class FrameInfo{
 public:
@@ -16,8 +16,12 @@ public:
     //音频帧的pts
     int64_t pts;
 
+    AVFrame *videoFrame;
+
 public:
     FrameInfo(void *data, long size, int64_t pts);
+
+    FrameInfo(AVFrame *videoFrame);
 
 
 };

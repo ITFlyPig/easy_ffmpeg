@@ -1297,6 +1297,6 @@ Java_com_wyl_ffmpegtest_MainActivity_testAudioPlay(JNIEnv *env, jobject thiz, js
     }
     mediaPlayer->opengl = opengl;
 
-    mediaPlayer->decode();
+    mediaPlayer->newThreadDecode();
     mediaPlayer->close();
 }

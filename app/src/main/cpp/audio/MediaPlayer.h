@@ -15,6 +15,7 @@
 #include <thread>
 #include "AudioDecoder.h"
 #include "RenderAudio.h"
+#include "VideoDecoder.h"
 
 
 class MediaPlayer {
@@ -27,6 +28,7 @@ public:
     AVCodecContext *pVideoCodecCxt = NULL;
     bool isVideoOpen = false;
     AVPixelFormat mDstFmt = AV_PIX_FMT_RGBA;//目标格式
+    SwsContext *pVideoSwsCxt = nullptr;
 
     //===========解码音频===========
     int audioIndex = -1;//视频流的索引
@@ -46,6 +48,7 @@ public:
     MediaProvider *mediaProvider;
     RenderAudio *renderAudio;
     AudioDecoder *audioDecoder;
+    VideoDecoder *videoDecoder = nullptr;
 
 
     //找到并打开解码器
@@ -58,6 +61,7 @@ public:
     int decode();
 
     int close();
+    void newThreadDecode();
 
     //播放时音频的采样率
     static const int AUDIO_DST_SAMPLE_RATE = 44100;

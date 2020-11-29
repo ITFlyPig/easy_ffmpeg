@@ -138,7 +138,7 @@ int MediaPlayer::decode() {
     AVFrame *pAudioFrame = NULL;
 
 
-    SwsContext *pVideoSwsCxt;
+
     int ret = RET_ERROR;
 
 
@@ -211,6 +211,13 @@ int MediaPlayer::decode() {
         audioThread.detach();
     }
 
+    if (isVideoOpen) {
+        videoDecoder = new VideoDecoder(this);
+        //启动解码视频的线程
+        std::thread videoThread = std::thread(&VideoDecoder::start, videoDecoder);
+        videoThread.detach();
+    }
+
     //开始解码
     int videoCount = 0;
     int audioCount = 0;
@@ -225,42 +232,9 @@ int MediaPlayer::decode() {
     while (av_read_frame(c, pPacket) == 0) {
         //确保需要解码的是视频帧
         if (pPacket->stream_index == videoIndex) {
-            /*ret = avcodec_send_packet(pVideoCodecCxt, pPacket);
-            if (ret < 0) {
-                LOGE(TAG, "Error sending a packet for decoding:%s", av_err2str(ret))
-                return RET_ERROR;
-            }
-            while (ret >= 0) {
-                ret = avcodec_receive_frame(pVideoCodecCxt, pFrame);
-                if (ret == AVERROR(EAGAIN)) {
-                    break;
-                }
-                if (ret < 0) {
-                    LOGE(TAG, "Error during decoding:%s", av_err2str(ret));
-                    return RET_ERROR;
-                }
-                LOGD(TAG, "视频帧%d解码成功", videoCount);
-                videoCount++;
-                //开始格式转换
-                AVFrame *pRGBFame = FrameUtil::alloc_picture(mDstFmt, nDstWidth, nDstHeight);
-                if (pRGBFame == nullptr) {
-                    LOGE(TAG, "alloc_picture 申请Frame失败");
-                    continue;
-                }
-                ret = sws_scale(pVideoSwsCxt, pFrame->data, pFrame->linesize, 0, pFrame->height,
-                                pRGBFame->data, pRGBFame->linesize);
-                if (ret < 0) {
-                    LOGE(TAG, "sws_scale 转换失败:%s", av_err2str(ret));
-                    return RET_ERROR;
-                }
-
-                LOGD(TAG, "开始渲染的视频的时间：%f", pFrame->pts * av_q2d(pVideoCodecCxt->time_base));
-                //开始渲染
-                opengl->draw(pRGBFame->data[0], nDstWidth, nDstHeight, egl->eglDisplay,
-                             egl->eglSurface);
-
-                av_frame_free(&pRGBFame);
-            }*/
+            PacketInfo *videoPkt = new PacketInfo();
+            videoPkt->packet = pPacket;
+            videoDecoder->put(videoPkt);
 
         } else if (pPacket->stream_index == audioIndex) {//音频数据
             PacketInfo *packetInfo = new PacketInfo();
@@ -409,6 +383,25 @@ void MediaPlayer::readThread() {
     av_packet_free(&pPacket);
     pPacket = nullptr;
 
+}
+
+void MediaPlayer::newThreadDecode() {
+    std::thread readThread = std::thread(&MediaPlayer::decode, this);
+
+    //不断的拿到视频渲染
+    av_usleep(3000000);
+    while (true) {
+        FrameInfo *videoFrameInfo = videoDecoder->get();
+        AVFrame *videoFrame = videoFrameInfo->videoFrame;
+        if (videoFrame == nullptr) {
+            return;
+        }
+        LOGE(TAG, "开始渲染视频帧");
+        opengl->draw(videoFrame->data[0], nDstWidth, nDstHeight, egl->eglDisplay,
+                     egl->eglSurface);
+        av_frame_free(&videoFrame);
+        delete videoFrameInfo;
+    }
 }
 
 
