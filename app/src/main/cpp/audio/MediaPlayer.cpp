@@ -67,7 +67,7 @@ int MediaPlayer::open() {
 
     LOGD(TAG, "视频文件：%s 打开成功", path);
 
-    //创建媒体数据提供者
+   /* //创建媒体数据提供者
     mediaProvider = new MediaProvider();
     //打开openglse的音频播放器
     if (isAudioOpen) {
@@ -78,7 +78,7 @@ int MediaPlayer::open() {
             return RET_ERROR;
         }
         renderAudio->setPlayVolume(2);
-    }
+    }*/
     return RET_SUCCESS;
 }
 
@@ -136,17 +136,12 @@ int MediaPlayer::findAndOpenCodec(AVCodecID codecId, AVCodecContext **pCodecCxt,
 int MediaPlayer::decode() {
     AVFrame *pFrame = NULL;
     AVFrame *pAudioFrame = NULL;
-    AVPacket *pPacket = NULL;
-    SwrContext *pAudioSwsCxt = nullptr;
+
+
     SwsContext *pVideoSwsCxt;
     int ret = RET_ERROR;
 
-    pPacket = av_packet_alloc();
-    if (pPacket == NULL) {
-        LOGE(TAG, "AVPacket申请失败");
-        return RET_ERROR;
-    }
-    av_init_packet(pPacket);
+
     pFrame = av_frame_alloc();
     if (pFrame == NULL) {
         LOGE(TAG, "AVFrame申请失败");
@@ -199,14 +194,38 @@ int MediaPlayer::decode() {
             outSampleFmt,//采样格式
             1);
 
+    AudioDecoder *audioDecoder = nullptr;
+    //打开openglse的音频播放器
+    if (isAudioOpen) {
+        audioDecoder = new AudioDecoder(this, outDataSize);
+        audioDecoder->resampleFrameSize = outDataSize;
+        renderAudio = new RenderAudio(pAudioCodecCxt->channels, pAudioCodecCxt->sample_rate,
+                                      audioDecoder);
+        if (renderAudio->open() < 0) {
+            LOGE(TAG, "创建音频播放器失败");
+            return RET_ERROR;
+        }
+        renderAudio->setPlayVolume(2);
+        //开启音频解码线程
+        std::thread audioThread = std::thread(&AudioDecoder::start, audioDecoder);
+        audioThread.detach();
+    }
 
     //开始解码
     int videoCount = 0;
     int audioCount = 0;
+    AVPacket *pPacket = NULL;
+    pPacket = av_packet_alloc();
+    if (pPacket == NULL) {
+        LOGE(TAG, "AVPacket申请失败");
+        return RET_ERROR;
+    }
+    av_init_packet(pPacket);
+
     while (av_read_frame(c, pPacket) == 0) {
         //确保需要解码的是视频帧
         if (pPacket->stream_index == videoIndex) {
-            ret = avcodec_send_packet(pVideoCodecCxt, pPacket);
+            /*ret = avcodec_send_packet(pVideoCodecCxt, pPacket);
             if (ret < 0) {
                 LOGE(TAG, "Error sending a packet for decoding:%s", av_err2str(ret))
                 return RET_ERROR;
@@ -229,52 +248,36 @@ int MediaPlayer::decode() {
                     continue;
                 }
                 ret = sws_scale(pVideoSwsCxt, pFrame->data, pFrame->linesize, 0, pFrame->height,
-                        pRGBFame->data, pRGBFame->linesize);
+                                pRGBFame->data, pRGBFame->linesize);
                 if (ret < 0) {
                     LOGE(TAG, "sws_scale 转换失败:%s", av_err2str(ret));
                     return RET_ERROR;
                 }
+
+                LOGD(TAG, "开始渲染的视频的时间：%f", pFrame->pts * av_q2d(pVideoCodecCxt->time_base));
                 //开始渲染
                 opengl->draw(pRGBFame->data[0], nDstWidth, nDstHeight, egl->eglDisplay,
                              egl->eglSurface);
 
                 av_frame_free(&pRGBFame);
-            }
+            }*/
 
         } else if (pPacket->stream_index == audioIndex) {//音频数据
-            ret = avcodec_send_packet(pAudioCodecCxt, pPacket);
-            if (ret < 0) {
-                LOGE(TAG, "Error sending a packet for decoding:%s", av_err2str(ret))
-                return RET_ERROR;
-            }
-            while (ret >= 0) {
-                ret = avcodec_receive_frame(pAudioCodecCxt, pFrame);
-                if (ret == AVERROR(EAGAIN)) {
-                    break;
-                }
-                if (ret < 0) {
-                    LOGE(TAG, "Error during decoding:%s", av_err2str(ret));
-                    return RET_ERROR;
-                }
-                LOGD(TAG, "音频帧%d解码成功", audioCount);
-//                LOGD(TAG, "是否是平面音频数据:%d", av_sample_fmt_is_planar(pAudioCodecCxt->sample_fmt))
-                uint8_t *audioOutBuffer = (uint8_t *) malloc(outDataSize);
-                //重采样，frame 为解码帧
-                ret = swr_convert(pAudioSwsCxt, &audioOutBuffer, outDataSize / 2,
-                                  (const uint8_t **) pFrame->data, pFrame->nb_samples);
-                if (ret > 0) {
-                    //计算当前音频帧的pts
-                    LOGD(TAG, "音频帧%d重采样成功", audioCount);
-                    PcmInfo *pcmInfo = new PcmInfo(audioOutBuffer, outDataSize, 0);
-                    mediaProvider->produce(pcmInfo);
-                }
-
-                audioCount++;
-            }
+            PacketInfo *packetInfo = new PacketInfo();
+            packetInfo->packet = pPacket;
+            audioDecoder->put(packetInfo);
 
         }
-        av_packet_unref(pPacket);
+
+        pPacket = av_packet_alloc();
+        if (pPacket == NULL) {
+            LOGE(TAG, "AVPacket申请失败");
+            return RET_ERROR;
+        }
+        av_init_packet(pPacket);
     }
+
+
     LOGE(TAG, "解码结束");
 
     av_packet_unref(pPacket);
@@ -326,6 +329,85 @@ void MediaPlayer::onFrame(AVMediaType mediaType, AVFrame *pFrame) {
     } else if (mediaType == AVMEDIA_TYPE_VIDEO) {
         LOGE(TAG, "接收到视频帧");
     }
+
+}
+
+void MediaPlayer::readThread() {
+    //开始解码
+    int videoCount = 0;
+    int audioCount = 0;
+    AVPacket *pPacket = NULL;
+    pPacket = av_packet_alloc();
+    if (pPacket == NULL) {
+        LOGE(TAG, "AVPacket申请失败");
+        return ;
+    }
+    av_init_packet(pPacket);
+
+    while (av_read_frame(c, pPacket) == 0) {
+        //确保需要解码的是视频帧
+        if (pPacket->stream_index == videoIndex) {
+            /*ret = avcodec_send_packet(pVideoCodecCxt, pPacket);
+            if (ret < 0) {
+                LOGE(TAG, "Error sending a packet for decoding:%s", av_err2str(ret))
+                return RET_ERROR;
+            }
+            while (ret >= 0) {
+                ret = avcodec_receive_frame(pVideoCodecCxt, pFrame);
+                if (ret == AVERROR(EAGAIN)) {
+                    break;
+                }
+                if (ret < 0) {
+                    LOGE(TAG, "Error during decoding:%s", av_err2str(ret));
+                    return RET_ERROR;
+                }
+                LOGD(TAG, "视频帧%d解码成功", videoCount);
+                videoCount++;
+                //开始格式转换
+                AVFrame *pRGBFame = FrameUtil::alloc_picture(mDstFmt, nDstWidth, nDstHeight);
+                if (pRGBFame == nullptr) {
+                    LOGE(TAG, "alloc_picture 申请Frame失败");
+                    continue;
+                }
+                ret = sws_scale(pVideoSwsCxt, pFrame->data, pFrame->linesize, 0, pFrame->height,
+                                pRGBFame->data, pRGBFame->linesize);
+                if (ret < 0) {
+                    LOGE(TAG, "sws_scale 转换失败:%s", av_err2str(ret));
+                    return RET_ERROR;
+                }
+
+                LOGD(TAG, "开始渲染的视频的时间：%f", pFrame->pts * av_q2d(pVideoCodecCxt->time_base));
+                //开始渲染
+                opengl->draw(pRGBFame->data[0], nDstWidth, nDstHeight, egl->eglDisplay,
+                             egl->eglSurface);
+
+                av_frame_free(&pRGBFame);
+            }*/
+
+        } else if (pPacket->stream_index == audioIndex) {//音频数据
+            if (audioDecoder != nullptr) {
+                PacketInfo *packetInfo = new PacketInfo();
+                packetInfo->packet = pPacket;
+                audioDecoder->put(packetInfo);
+            }
+        }
+
+        av_packet_unref(pPacket);
+
+        pPacket = av_packet_alloc();
+        if (pPacket == NULL) {
+            LOGE(TAG, "AVPacket申请失败");
+            return;
+        }
+        av_init_packet(pPacket);
+    }
+
+
+    LOGE(TAG, "解码结束");
+
+    av_packet_unref(pPacket);
+    av_packet_free(&pPacket);
+    pPacket = nullptr;
 
 }
 

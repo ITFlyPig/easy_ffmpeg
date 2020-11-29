@@ -21,6 +21,9 @@ public:
     //音频帧的pts
     int64_t pts;
 
+    //音频时间基
+    AVRational *tb;
+
 };
 
 #endif //FFMPEGTEST_PCMINFO_H

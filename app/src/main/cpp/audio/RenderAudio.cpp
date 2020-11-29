@@ -228,11 +228,12 @@ int RenderAudio::enqueuePcm() {
         LOGE(TAG, "pcmProvider 为空,无法提供数据");
         return RET_ERROR;
     }
-   PcmInfo *pcmInfo = pcmProvider->provide();
+    FrameInfo *pcmInfo = pcmProvider->get();
     if (pcmInfo == nullptr) {
         LOGE(TAG, "provide 获取到的数据为空");
         return RET_ERROR;
     }
+    LOGE(TAG, "开始播放音频Frame");
     SLresult result;
     result = (*iPcmBufferQueue)->Enqueue(iPcmBufferQueue, pcmInfo->data, pcmInfo->size);
     //释放使用之后的内存
@@ -248,7 +249,7 @@ int RenderAudio::enqueuePcm() {
     return RET_SUCCESS;
 }
 
-RenderAudio::RenderAudio(int channels, long sampleRate, MediaProvider *pcmProvider) : channels(
+RenderAudio::RenderAudio(int channels, long sampleRate, AudioDecoder *pcmProvider) : channels(
         channels), sampleRate(sampleRate), pcmProvider(pcmProvider) {}
 
 

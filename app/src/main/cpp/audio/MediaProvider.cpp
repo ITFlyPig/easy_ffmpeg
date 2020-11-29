@@ -25,5 +25,6 @@ PcmInfo *MediaProvider::provide() {
     pcmQueue.pop_front();
     produceAudio.notify_one();
     lck.unlock();
+    LOGD(TAG, "开始渲染的音频的时间：%f" , pcmInfo->pts * av_q2d(*pcmInfo->tb));
     return pcmInfo;
 }

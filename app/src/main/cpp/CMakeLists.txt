@@ -49,7 +49,7 @@ FILE(GLOB EGL_CPP ${JNI_PATH}/egl/*.cpp)
 FILE(GLOB PLAYER_H ${JNI_PATH}/player/*.h)
 FILE(GLOB PLAYER_CPP ${JNI_PATH}/player/*.cpp)
 #audio
-FILE(GLOB AUDIO_H ${JNI_PATH}/audio/*.h)
+FILE(GLOB AUDIO_H ${JNI_PATH}/audio)
 FILE(GLOB AUDIO_CPP ${JNI_PATH}/audio/*.cpp)
 
 #======================加载头文件===================

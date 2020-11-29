@@ -10,6 +10,7 @@
 #include "log.h"
 #include "PcmProvider.h"
 #include "MediaProvider.h"
+#include "AudioDecoder.h"
 
 class RenderAudio {
 private:
@@ -36,10 +37,10 @@ private:
 
     int channels;//声道数
     long sampleRate;//采样率
-    MediaProvider *pcmProvider;
+    AudioDecoder *pcmProvider;
 
 public:
-    RenderAudio(int channels, long sampleRate, MediaProvider *pcmProvider);
+    RenderAudio(int channels, long sampleRate, AudioDecoder *pcmProvider);
 
 public:
     const char *path;
