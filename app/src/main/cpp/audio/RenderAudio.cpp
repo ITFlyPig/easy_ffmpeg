@@ -233,7 +233,7 @@ int RenderAudio::enqueuePcm() {
         LOGE(TAG, "provide 获取到的数据为空");
         return RET_ERROR;
     }
-    LOGE(TAG, "开始播放音频Frame");
+    LOGE(TAG, "开始播放音频，时间为:%f",pcmInfo->pts * av_q2d(pcmInfo->tb) );
     SLresult result;
     result = (*iPcmBufferQueue)->Enqueue(iPcmBufferQueue, pcmInfo->data, pcmInfo->size);
     //释放使用之后的内存

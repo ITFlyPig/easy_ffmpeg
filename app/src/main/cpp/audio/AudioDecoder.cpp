@@ -85,6 +85,7 @@ void AudioDecoder::start() {
                               (const uint8_t **) pAudioFrame->data, pAudioFrame->nb_samples);
             FrameInfo *frameInfo = nullptr;
             frameInfo = new FrameInfo(audioOutBuffer, resampleFrameSize, pAudioFrame->pts);
+            frameInfo->tb = tb;
             frameQueue.push_back(frameInfo);
             LOGE(TAG, "将解码得到的Frame放入队列");
             //将采样后的数据放入帧队列

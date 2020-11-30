@@ -16,6 +16,8 @@
 #include "AudioDecoder.h"
 #include "RenderAudio.h"
 #include "VideoDecoder.h"
+#include <sys/syscall.h>
+#include <unistd.h>
 
 
 class MediaPlayer {
@@ -78,8 +80,6 @@ private:
                     void (MediaPlayer::*onFrame)(AVMediaType mediaType, AVFrame *));
 
     void onFrame(AVMediaType mediaType, AVFrame *pFrame);
-    //流的读取线程
-    void readThread();
 };
 
 #endif //FFMPEGTEST_MEDIAPLAYER_H

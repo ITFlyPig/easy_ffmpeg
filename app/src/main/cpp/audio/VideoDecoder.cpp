@@ -48,17 +48,17 @@ void VideoDecoder::start() {
         PacketInfo *packetInfo = nullptr;
         std::unique_lock<std::mutex> lck(packeTmtx);
         while (packetQueue.empty()) {
-            LOGE(TAG, "Packet队列为空，线层休眠等待新的Packet");
+            LOGE(TAG, "video Packet队列为空，线层休眠等待新的Packet");
             getPacketCondition.wait(lck);
         }
         packetInfo = packetQueue.front();
         packetQueue.pop_front();
-        LOGE(TAG, "从Packet队列中获取到Packet，剩余的Packet数量%d", packetQueue.size());
+        LOGE(TAG, "从video Packet队列中获取到Packet，剩余的Packet数量%d", packetQueue.size());
         putPacketCondition.notify_one();
         lck.unlock();
 
         //开始解码
-        LOGE(TAG, "开始解码获取到的Packet，pos为：%lld", packetInfo->packet->pos);
+        LOGE(TAG, "开始解码获取到的video Packet，pos为：%lld", packetInfo->packet->pos);
         AVCodecContext *pVideoCodecCxt = mediaPlayer->pVideoCodecCxt;
 
         ret = avcodec_send_packet(pVideoCodecCxt, packetInfo->packet);
@@ -89,6 +89,8 @@ void VideoDecoder::start() {
                 LOGE(TAG, "sws_scale 转换失败:%s", av_err2str(ret));
                 return;
             }
+            //需要的数据赋值
+            pRGBFame->pts = pFrame->pts;
 
 //            LOGD(TAG, "开始渲染的视频的时间：%f", pFrame->pts * av_q2d(pVideoCodecCxt->time_base));
             //开始渲染
@@ -107,7 +109,7 @@ void VideoDecoder::start() {
         }
 
     } while (ret >= 0 || ret == AVERROR(EAGAIN));
-    LOGE(TAG, "AudioDecoder::start() 方法结束");
+    LOGE(TAG, "VideoDecoder::start() 方法结束");
 
 
 }

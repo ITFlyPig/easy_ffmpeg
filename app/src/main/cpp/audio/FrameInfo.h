@@ -15,8 +15,10 @@ public:
     long size;
     //音频帧的pts
     int64_t pts;
+    AVRational tb;
 
     AVFrame *videoFrame;
+
 
 public:
     FrameInfo(void *data, long size, int64_t pts);
