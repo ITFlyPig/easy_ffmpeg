@@ -24,6 +24,8 @@
 #include "video/encoder.h"
 #include "audio/ThreadTest.h"
 #include "audio/MediaPlayer.h"
+#include "ThumbnailUtil.h"
+#include "VideoSws.h"
 
 #define STREAM_DURATION   10.0
 #define SCALE_FLAGS SWS_BICUBIC
@@ -1280,6 +1282,7 @@ Java_com_wyl_ffmpegtest_MainActivity_testAudioPlay(JNIEnv *env, jobject thiz, js
         LOGE(TAG, "MediaPlayer 打开媒体文件失败");
         return;
     }
+
     //初始化Egl
     Egl *egl = new Egl();
     if (egl->open(nativeWindow) < 0) {
@@ -1297,6 +1300,57 @@ Java_com_wyl_ffmpegtest_MainActivity_testAudioPlay(JNIEnv *env, jobject thiz, js
     }
     mediaPlayer->opengl = opengl;
 
-    mediaPlayer->newThreadDecode();
-    mediaPlayer->close();
+    //=========================测试寻找特定pts的Frame=====================================start
+    AVStream *videoSt = mediaPlayer->c->streams[mediaPlayer->videoIndex];
+    AVCodecContext *videoCxt = mediaPlayer->pVideoCodecCxt;
+
+    VideoSws *videoSws = new VideoSws(videoCxt->width, videoCxt->height, videoCxt->pix_fmt,
+            mediaPlayer->nDstWidth, mediaPlayer->nDstHeight, mediaPlayer->mDstFmt);
+    videoSws->prepare();
+
+    //开始测试抽取指定时间的画面
+
+    int64_t totalPts = videoSt->duration;
+    int64_t step = 100;
+    AVFrame *pFrame = nullptr;
+    int ret = -1;
+    int count = 0;
+    double begin = (double) clock();
+    for (int64_t i = 0; i < totalPts; i += step) {
+        //拉取特定pts的帧
+        ret = ThumbnailUtil::fetchFrame(mediaPlayer->c, mediaPlayer->pVideoCodecCxt, i,
+                                        mediaPlayer->videoIndex, &pFrame);
+        if (ret < 0) {
+            LOGE(TAG, "ThumbnailUtil 获取特定pts图像失败");
+            return;
+        }
+        LOGE(TAG, "ThumbnailUtil pts = %lld像成功", i);
+        count++;
+        //转为特定能渲染的格式
+        AVFrame *rgbFrame = nullptr;
+        ret = videoSws->scale(pFrame, &rgbFrame);
+        if (ret < 0) {
+            LOGE(TAG, "变换Frame失败");
+            break;
+        }
+        //开始渲染
+        opengl->draw(rgbFrame->data[0], mediaPlayer->nDstWidth, mediaPlayer->nDstHeight, egl->eglDisplay,
+                     egl->eglSurface);
+        //渲染完，释放
+        av_frame_free(&rgbFrame);
+        //将AVBuffer指向的缓冲区释放，将Frame重置为默认值
+        av_frame_unref(pFrame);
+    }
+    videoSws->end();
+    double end = (double) clock();
+    LOGE(TAG, "总的寻找了帧数：%d，耗时：%f", count, (end - begin) / CLOCKS_PER_SEC);
+    //=========================测试寻找特定pts的Frame=====================================end
+
+//    av_q2d(mediaPlayer->c->streams[mediaPlayer->videoIndex].ti)
+//    int totalPts = mediaPlayer->c->duration / AV_TIME_BASE;
+
+
+
+//    mediaPlayer->newThreadDecode();
+//    mediaPlayer->close();
 }
