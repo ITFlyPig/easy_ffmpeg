@@ -1,12 +1,14 @@
 package com.wyl.ffmpegtest;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.customview.widget.ViewDragHelper;
 
 import android.Manifest;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
@@ -22,13 +24,12 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
+    public static final String TAG = MainActivity.class.getName();
 
     // Used to load the 'native-lib' library on application startup.
     static {
         System.loadLibrary("native-lib");
     }
-
-    public static final String TAG = MainActivity.class.getName();
 
     private TextView tvOpenGlEGLShow;
     private SurfaceView surfaceView;
@@ -36,6 +37,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private SurfaceView videoSurfaceView;
     private Surface videoSurface;
     private TextView tvRenderVideo;
+    private View vTouchBar;
 
 
     @Override
@@ -46,6 +48,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         // Example of a call to a native method
         TextView tv = findViewById(R.id.sample_text);
         surfaceView = findViewById(R.id.surface);
+        vTouchBar = findViewById(R.id.v_touch_bar);
+        vTouchBar.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                //计算出百分比
+                float percent = event.getX() / (float) v.getWidth();
+                Log.d(TAG, "当前百分比:" + percent);
+                updateVideo(percent * 50);
+
+                return true;
+            }
+        });
         surfaceView.getHolder().addCallback(new SurfaceHolder.Callback() {
             @Override
             public void surfaceCreated(SurfaceHolder holder) {
@@ -114,6 +128,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             @Override
             public void surfaceCreated(SurfaceHolder holder) {
                 videoSurface = holder.getSurface();
+                open("/sdcard/mvtest.mp4", videoSurface, videoSurfaceView.getWidth(), videoSurfaceView.getHeight());
             }
 
             @Override
@@ -240,4 +255,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public native void makeVideo(String path, String name);
 
     public native void testAudioPlay(String path, Surface surface, int width, int height);
+
+    //据百分比更新视频的显示
+    public native void open(String path, Surface surface, int width, int height);
+    public native void updateVideo(float percent);
 }

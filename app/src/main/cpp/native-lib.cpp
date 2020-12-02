@@ -1305,7 +1305,8 @@ Java_com_wyl_ffmpegtest_MainActivity_testAudioPlay(JNIEnv *env, jobject thiz, js
     AVCodecContext *videoCxt = mediaPlayer->pVideoCodecCxt;
 
     VideoSws *videoSws = new VideoSws(videoCxt->width, videoCxt->height, videoCxt->pix_fmt,
-            mediaPlayer->nDstWidth, mediaPlayer->nDstHeight, mediaPlayer->mDstFmt);
+                                      mediaPlayer->nDstWidth, mediaPlayer->nDstHeight,
+                                      mediaPlayer->mDstFmt);
     videoSws->prepare();
 
     //开始测试抽取指定时间的画面
@@ -1334,7 +1335,8 @@ Java_com_wyl_ffmpegtest_MainActivity_testAudioPlay(JNIEnv *env, jobject thiz, js
             break;
         }
         //开始渲染
-        opengl->draw(rgbFrame->data[0], mediaPlayer->nDstWidth, mediaPlayer->nDstHeight, egl->eglDisplay,
+        opengl->draw(rgbFrame->data[0], mediaPlayer->nDstWidth, mediaPlayer->nDstHeight,
+                     egl->eglDisplay,
                      egl->eglSurface);
         //渲染完，释放
         av_frame_free(&rgbFrame);
@@ -1353,4 +1355,129 @@ Java_com_wyl_ffmpegtest_MainActivity_testAudioPlay(JNIEnv *env, jobject thiz, js
 
 //    mediaPlayer->newThreadDecode();
 //    mediaPlayer->close();
+}
+
+MediaPlayer *mediaPlayer = nullptr;
+ThumbnailUtil *thumbnailUtil = nullptr;
+VideoSws *videoSws = nullptr;
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_wyl_ffmpegtest_MainActivity_updateVideo(JNIEnv *env, jobject thiz, jfloat time) {
+    if (mediaPlayer == nullptr) {
+        return;
+    }
+    /*
+    //据百分比计算应该显示的pts
+    AVStream *videoSt = mediaPlayer->c->streams[mediaPlayer->videoIndex];
+    AVCodecContext *videoCxt = mediaPlayer->pVideoCodecCxt;
+
+    //为变换做准备
+    VideoSws *videoSws = new VideoSws(videoCxt->width, videoCxt->height, videoCxt->pix_fmt,
+                                      mediaPlayer->nDstWidth, mediaPlayer->nDstHeight, mediaPlayer->mDstFmt);
+    videoSws->prepare();
+
+    //总的pts
+    int64_t totalPts = videoSt->duration;
+    //当前应该展示的pts
+    int64_t curPts = totalPts * percent;
+
+    //获取特定pts的帧
+    AVFrame *pFrame = nullptr;
+    int ret = ThumbnailUtil::fetchFrame(mediaPlayer->c, mediaPlayer->pVideoCodecCxt, curPts,
+                                    mediaPlayer->videoIndex, &pFrame);
+    LOGE(TAG, "当前需要显示的pts:%lld，大小：%d", curPts, pFrame->pkt_size);
+    if (ret < 0) {
+        LOGE(TAG, "ThumbnailUtil 获取特定pts图像失败");
+        return;
+    }
+
+    //变换
+    AVFrame *rgbFrame = nullptr;
+    ret = videoSws->scale(pFrame, &rgbFrame);
+    if (ret < 0) {
+        LOGE(TAG, "变换Frame失败");
+        return;
+    }
+    //开始渲染
+    mediaPlayer->opengl->draw(rgbFrame->data[0], mediaPlayer->nDstWidth, mediaPlayer->nDstHeight, mediaPlayer->egl->eglDisplay,
+                              mediaPlayer->egl->eglSurface);
+    //释放资源
+    av_frame_free(&rgbFrame);
+    av_frame_free(&pFrame);
+     */
+
+    //据传入的时间计算对应的pts
+    AVStream *videoSt = mediaPlayer->c->streams[mediaPlayer->videoIndex];
+    int64_t curPts = time / av_q2d(videoSt->time_base);
+
+    AVFrame *frame = thumbnailUtil->getFrame(curPts);
+    if (frame != nullptr) {
+        //变换
+        AVFrame *rgbFrame = nullptr;
+        int ret = videoSws->scale(frame, &rgbFrame);
+        if (ret < 0) {
+            LOGE(TAG, "变换Frame失败");
+            return;
+        }
+        //开始渲染
+        mediaPlayer->opengl->draw(rgbFrame->data[0], mediaPlayer->nDstWidth,
+                                  mediaPlayer->nDstHeight, mediaPlayer->egl->eglDisplay,
+                                  mediaPlayer->egl->eglSurface);
+        av_frame_free(&rgbFrame);
+    }
+
+
+}
+
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_wyl_ffmpegtest_MainActivity_open(JNIEnv *env, jobject thiz, jstring jpath, jobject surface,
+                                          jint width, jint height) {
+    ANativeWindow *nativeWindow = ANativeWindow_fromSurface(env, surface);
+    if (nativeWindow == nullptr) {
+        LOGE(TAG, "ANativeWindow创建失败");
+        return;
+    }
+    jboolean isCopy;
+    const char *path = env->GetStringUTFChars(jpath, &isCopy);
+    mediaPlayer = new MediaPlayer(path, width, height);
+    if (mediaPlayer->open() < 0) {
+        LOGE(TAG, "MediaPlayer 打开媒体文件失败");
+        return;
+    }
+    //初始化Egl
+    Egl *egl = new Egl();
+    if (egl->open(nativeWindow) < 0) {
+        LOGE(TAG, "Egl初始化失败");
+        return;
+    }
+    mediaPlayer->egl = egl;
+    //初始化OpenGL
+    Opengl *opengl = new Opengl();
+    if (!opengl->CreateProgram()) {
+        LOGE(TAG, "OpenGL 初始化失败");
+        return;
+    } else {
+        LOGE(TAG, "OpenGL 初始化成功");
+    }
+    mediaPlayer->opengl = opengl;
+
+
+    thumbnailUtil = new ThumbnailUtil();
+    thumbnailUtil->c = mediaPlayer->c;
+    thumbnailUtil->streamIndex = mediaPlayer->videoIndex;
+    thumbnailUtil->codecCxt = mediaPlayer->pVideoCodecCxt;
+    //开启一个线程缓存Frame
+    std::thread cacheThread = std::thread(&ThumbnailUtil::adjustCache, thumbnailUtil);
+    cacheThread.detach();
+
+    //为变换做准备
+    AVCodecContext *videoCxt = mediaPlayer->pVideoCodecCxt;
+    videoSws = new VideoSws(videoCxt->width, videoCxt->height, videoCxt->pix_fmt,
+                            mediaPlayer->nDstWidth, mediaPlayer->nDstHeight, mediaPlayer->mDstFmt);
+    videoSws->prepare();
+
+
 }

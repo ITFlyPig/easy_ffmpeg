@@ -41,5 +41,10 @@
         android:id="@+id/video_surface"
         android:layout_width="match_parent"
         android:layout_height="200dp"/>
+    <View
+        android:id="@+id/v_touch_bar"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:background="@color/color_e27f32"/>
 
 </LinearLayout>
