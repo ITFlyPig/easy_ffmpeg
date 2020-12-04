@@ -160,8 +160,6 @@ int MediaPlayer::decode() {
         return RET_ERROR;
     }
     AVSampleFormat outSampleFmt = AV_SAMPLE_FMT_S16;
-    //目标采样率
-    int outSampleRate = renderAudio->OpenSLSampleRate(pAudioCodecCxt->sample_rate);
     //音频转换器
     pAudioSwsCxt = swr_alloc();
     // 配置输入/输出通道类型

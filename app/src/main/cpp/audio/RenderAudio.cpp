@@ -50,13 +50,13 @@ int RenderAudio::open() {
     //音频格式
     SLDataFormat_PCM pcm = {
             SL_DATAFORMAT_PCM,////播放pcm格式的数据
-            (SLuint32) 2,// 2个声道（立体声）
+            (SLuint32) channels,// 2个声道（立体声）
 //            (SLuint32) parameter.sample_rate * 1000,
-            static_cast<SLuint32>(OpenSLSampleRate(sampleRate)),//采样率
+            static_cast<SLuint32>(openSLSampleRate(sampleRate)),//采样率
             SL_PCMSAMPLEFORMAT_FIXED_16,//采样位数
             SL_PCMSAMPLEFORMAT_FIXED_16,
 //            SL_SPEAKER_FRONT_LEFT | SL_SPEAKER_FRONT_RIGHT,
-            static_cast<SLuint32>(GetChannelMask(2)),//立体声或者单声道
+            static_cast<SLuint32>(GetChannelMask(channels)),//立体声或者单声道
             SL_BYTEORDER_LITTLEENDIAN //结束标志
     };
     SLDataSource dataSource = {&que, &pcm};
@@ -136,7 +136,7 @@ int RenderAudio::close() {
     return RET_SUCCESS;
 }
 
-int RenderAudio::OpenSLSampleRate(SLuint32 sampleRate) {
+int RenderAudio::openSLSampleRate(SLuint32 sampleRate) {
     int samplesPerSec = SL_SAMPLINGRATE_44_1;
     switch (sampleRate) {
         case 8000:
