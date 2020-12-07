@@ -10,6 +10,7 @@
 #include "PacketInfo.h"
 #include "FrameInfo.h"
 #include "log.h"
+#include "AudioSwr.h"
 
 class MediaPlayer;
 class AudioDecoder {
@@ -21,7 +22,7 @@ private:
     //存放未解码的包
     std::deque<PacketInfo*> packetQueue;
     //最大缓存的帧数量
-    static const int MAX_FRAME_NUM = 4;
+    static const int MAX_FRAME_NUM = 10;
     //存放已解码的帧
     std::deque<FrameInfo*> frameQueue;
     std::mutex packeTmtx;
@@ -34,11 +35,13 @@ private:
     std::condition_variable putFrameCondition;
     std::condition_variable getFrameCondition;
 
-    MediaPlayer *mediaPlayer;
-
+    AVCodecContext *audioCodecCxt = nullptr;
+    //音频重采样使用
+    AudioSwr *audioSwr = nullptr;
+public:
+    AudioDecoder(AVCodecContext *audioCodecCxt, AudioSwr *audioSwr);
 
 public:
-    AudioDecoder(MediaPlayer *mediaPlayer, int resampleFrameSize);
 
     //将包放到带解压的队列
     void put(PacketInfo* packetInfo);
@@ -46,14 +49,6 @@ public:
     FrameInfo* get();
     //开始解码
     void start();
-
-
-public:
-    //重采样后一帧的大小
-    int resampleFrameSize;
-
-
-
 };
 
 #endif //FFMPEGTEST_AUDIODECODER_H

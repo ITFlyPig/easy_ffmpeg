@@ -15,9 +15,9 @@ int VideoSws::prepare() {
     swsCxt = sws_getContext(srcW, srcH, srcFmt, dstW, dstH, dstFmt, SWS_FAST_BILINEAR, nullptr,
                             nullptr, nullptr);
     if (swsCxt == nullptr) {
-        return RET_SUCCESS;
+        return RET_ERROR;
     }
-    return RET_ERROR;
+    return RET_SUCCESS;
 }
 
 int VideoSws::end() {

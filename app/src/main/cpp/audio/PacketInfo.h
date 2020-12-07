@@ -5,12 +5,14 @@
 #ifndef FFMPEGTEST_PACKETINFO_H
 #define FFMPEGTEST_PACKETINFO_H
 
-#include <libavcodec/packet.h>
+#include "log.h"
 
 class PacketInfo{
 public:
     AVPacket *packet;
     int pos;
+
+    virtual ~PacketInfo();
 
 };
 

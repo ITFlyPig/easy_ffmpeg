@@ -38,6 +38,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private Surface videoSurface;
     private TextView tvRenderVideo;
     private View vTouchBar;
+    private SurfaceView surfaceView2;
+    private Surface surface2;
+    private TextView tvOpenVideoWithOtherBg;
 
 
     @Override
@@ -49,6 +52,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         TextView tv = findViewById(R.id.sample_text);
         surfaceView = findViewById(R.id.surface);
         vTouchBar = findViewById(R.id.v_touch_bar);
+        tvOpenVideoWithOtherBg = findViewById(R.id.tv_open_video_with_bg);
+        surfaceView2 = findViewById(R.id.video_surface2);
         vTouchBar.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
@@ -141,6 +146,26 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
             }
         });
+
+
+        //换背景音乐
+        surfaceView2.getHolder().addCallback(new SurfaceHolder.Callback() {
+            @Override
+            public void surfaceCreated(SurfaceHolder holder) {
+                surface2 = holder.getSurface();
+            }
+
+            @Override
+            public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+
+            }
+
+            @Override
+            public void surfaceDestroyed(SurfaceHolder holder) {
+
+            }
+        });
+        tvOpenVideoWithOtherBg.setOnClickListener(this);
     }
 
     /**
@@ -216,6 +241,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 }, Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.RECORD_AUDIO);
 
                 break;
+            case R.id.tv_open_video_with_bg:
+                openWithBg("/sdcard/mvtest.mp4", "/sdcard/test.mp3", surface2, surfaceView2.getWidth(), surfaceView2.getHeight());
+//                openMP3();
+                break;
             default:
                 break;
         }
@@ -259,4 +288,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     //据百分比更新视频的显示
     public native void open(String path, Surface surface, int width, int height);
     public native void updateVideo(float percent);
+
+    //换背景音乐
+    public native void openWithBg(String videoPath, String audioPath, Surface surface, int width, int height);
+
+    public native void openMP3();
 }

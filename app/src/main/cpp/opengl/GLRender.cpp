@@ -10,7 +10,7 @@ void GLRender::Release() {
 
 int GLRender::Init() {
     int ret = 0;
-    if (m_eInitStatus == SUCCESS) {
+    if (m_eInitStatus == SUCCESS_CODE) {
         LOGE(TAG, "GL已经初始化, 不用再吃初始化");
         return RET_SUCCESS;
     }

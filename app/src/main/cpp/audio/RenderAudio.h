@@ -18,8 +18,6 @@ private:
     int GetChannelMask(int channels);
     //据传入的采样率，转为opengles识别的采样率
     int openSLSampleRate(SLuint32 sampleRate);
-    //将pcm数据送入到opengles的播放队列
-    int enqueuePcm();
 
 
 private:
@@ -43,6 +41,7 @@ private:
     long sampleRate;//采样率
     AudioDecoder *pcmProvider;//pcm数据提供者
 
+
 public:
     RenderAudio(int channels, long sampleRate, AudioDecoder *pcmProvider);
 
@@ -52,6 +51,8 @@ public:
     int close();
     //设置播放的音量
     void setPlayVolume(int percent);
+    //将pcm数据送入到opengles的播放队列
+    int enqueuePcm();
 
 };
 

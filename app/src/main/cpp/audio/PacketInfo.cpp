@@ -4,3 +4,11 @@
 
 #include "PacketInfo.h"
 
+PacketInfo::~PacketInfo() {
+    if (packet != nullptr) {
+        av_packet_free(&packet);
+        packet = nullptr;
+
+    }
+
+}

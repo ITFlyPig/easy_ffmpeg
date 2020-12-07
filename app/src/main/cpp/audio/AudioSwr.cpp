@@ -14,6 +14,7 @@ int AudioSwr::prepare() {
         return RET_ERROR;
     }
     // 配置输入/输出通道类型
+//    av_opt_set_int(pSwrContext, "in_channel_layout", av_get_default_channel_layout(inChannels), 0);
     av_opt_set_int(pSwrContext, "in_channel_layout", av_get_default_channel_layout(inChannels), 0);
     // 这里 AUDIO_DEST_CHANNEL_LAYOUT = AV_CH_LAYOUT_STEREO，即 立体声
     av_opt_set_int(pSwrContext, "out_channel_layout", av_get_default_channel_layout(outChannels),
@@ -43,7 +44,11 @@ int AudioSwr::convert(uint8_t **out, int out_count, const uint8_t **in, int in_c
     //申请内存
     *out = (uint8_t *) malloc(resampleSize);
     int ret = swr_convert(pSwrContext, out, out_count, in, in_count);
-    return ret;
+    if (ret < 0) {
+        return ret;
+    }
+    //如果成功，返回重采样的大小
+    return resampleSize;
 }
 
 int AudioSwr::end() {

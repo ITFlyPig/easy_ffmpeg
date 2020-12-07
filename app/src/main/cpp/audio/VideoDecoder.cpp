@@ -59,9 +59,8 @@ void VideoDecoder::start() {
 
         //开始解码
         LOGE(TAG, "开始解码获取到的video Packet，pos为：%lld", packetInfo->packet->pos);
-        AVCodecContext *pVideoCodecCxt = mediaPlayer->pVideoCodecCxt;
 
-        ret = avcodec_send_packet(pVideoCodecCxt, packetInfo->packet);
+        ret = avcodec_send_packet(videoCodecCxt, packetInfo->packet);
         if (ret < 0) {
             LOGE(TAG, "Error sending a packet for decoding:%s", av_err2str(ret))
             break;
@@ -69,7 +68,7 @@ void VideoDecoder::start() {
         while (ret >= 0) {
             AVFrame *pFrame = NULL;
             pFrame = av_frame_alloc();
-            ret = avcodec_receive_frame(pVideoCodecCxt, pFrame);
+            ret = avcodec_receive_frame(videoCodecCxt, pFrame);
             if (ret == AVERROR(EAGAIN)) {
                 break;
             }
@@ -77,25 +76,9 @@ void VideoDecoder::start() {
                 LOGE(TAG, "Error during decoding:%s", av_err2str(ret));
                 return;
             }
-            //开始格式转换
-            AVFrame *pRGBFame = FrameUtil::alloc_picture(mediaPlayer->mDstFmt, mediaPlayer->nDstWidth, mediaPlayer->nDstHeight);
-            if (pRGBFame == nullptr) {
-                LOGE(TAG, "alloc_picture 申请Frame失败");
-                continue;
-            }
-            ret = sws_scale(mediaPlayer->pVideoSwsCxt, pFrame->data, pFrame->linesize, 0, pFrame->height,
-                            pRGBFame->data, pRGBFame->linesize);
-            if (ret < 0) {
-                LOGE(TAG, "sws_scale 转换失败:%s", av_err2str(ret));
-                return;
-            }
-            //需要的数据赋值
-            pRGBFame->pts = pFrame->pts;
-
 //            LOGD(TAG, "开始渲染的视频的时间：%f", pFrame->pts * av_q2d(pVideoCodecCxt->time_base));
-            //开始渲染
             FrameInfo *frameInfo = nullptr;
-            frameInfo = new FrameInfo(pRGBFame);
+            frameInfo = new FrameInfo(pFrame);
             LOGE(TAG, "将解码得到的video Frame放入队列");
             //将采样后的数据放入帧队列
             std::unique_lock<std::mutex> frameLock(frameTmtx);
@@ -110,12 +93,8 @@ void VideoDecoder::start() {
 
     } while (ret >= 0 || ret == AVERROR(EAGAIN));
     LOGE(TAG, "VideoDecoder::start() 方法结束");
-
-
 }
 
-VideoDecoder::VideoDecoder(MediaPlayer *mediaPlayer) {
-    this->mediaPlayer = mediaPlayer;
+VideoDecoder::VideoDecoder(AVCodecContext *videoCodecCxt) : videoCodecCxt(videoCodecCxt) {}
 
-}
 

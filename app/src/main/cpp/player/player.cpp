@@ -5,10 +5,6 @@
 
 #include "player.h"
 
-
-static const int ERROR = -1;
-static const int SUCCESS = 0;
-
 void *Player::openVideo(void *player) {
     Player *pPlayer = static_cast<Player *>(player);
     int ret = -1;
@@ -16,19 +12,19 @@ void *Player::openVideo(void *player) {
     ret = pPlayer->open(pPlayer->path);
     if (ret < 0) {
         LOGE(TAG, "open视频打开失败");
-        return (void *) ERROR;
+        return (void *) ERROR_CODE;
     }
     //初始化Egl
     pPlayer->egl = new Egl();
     if (pPlayer->egl->open(pPlayer->aNativeWindow) < 0) {
         LOGE(TAG, "Egl初始化失败");
-        return (void *) ERROR;
+        return (void *) ERROR_CODE;
     }
     //初始化OpenGL
     pPlayer->opengl = new Opengl();
     if (!pPlayer->opengl->CreateProgram()) {
         LOGE(TAG, "OpenGL 初始化失败");
-        return (void *) ERROR;
+        return (void *) ERROR_CODE;
     } else {
         LOGE(TAG, "OpenGL 初始化成功");
     }
@@ -112,7 +108,7 @@ int Player::open(char *path) {
 
     LOGE(TAG, "视频文件：%s 打开成功", path);
 
-    return SUCCESS;
+    return SUCCESS_CODE;
 
 }
 
@@ -260,13 +256,13 @@ int Player::reversePlay() {
     egl = new Egl();
     if (egl->open(aNativeWindow) < 0) {
         LOGE(TAG, "Egl初始化失败");
-        return ERROR;
+        return ERROR_CODE;
     }
     //初始化OpenGL
     opengl = new Opengl();
     if (!opengl->CreateProgram()) {
         LOGE(TAG, "OpenGL 初始化失败");
-        return ERROR;
+        return ERROR_CODE;
     } else {
         LOGE(TAG, "OpenGL 初始化成功");
     }
@@ -516,7 +512,7 @@ int Player::produceFrame() {
     ret = open(path);
     if (ret < 0) {
         LOGE(TAG, "open视频打开失败");
-        return ERROR;
+        return ERROR_CODE;
     }
     //获取I帧的pts
     std::vector<int64_t> iFramePts = reverseDecode();
@@ -566,7 +562,7 @@ int Player::produceFrame() {
 //   /* ret = open(path);
 //    if (ret < 0) {
 //        LOGE(TAG, "open视频打开失败");
-//        return ERROR;
+//        return ERROR_CODE;
 //    }*/
 //    //获取I帧的pts
 //  /*  vector<int64_t> iFramePts = reverseDecode();
@@ -601,9 +597,9 @@ int Player::produceFrame() {
 //        avformat_free_context(c);
 //        c = nullptr;
 //    }
-//    if (codecCxt != nullptr) {
-//        avcodec_free_context(&codecCxt);
-//        codecCxt = nullptr;
+//    if (videoCodecCxt != nullptr) {
+//        avcodec_free_context(&videoCodecCxt);
+//        videoCodecCxt = nullptr;
 //    }*/
 //    LOGE(TAG, "生产线程结束");
 //    return NULL;

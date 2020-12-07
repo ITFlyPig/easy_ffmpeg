@@ -1,50 +1,71 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical">
+    android:layout_height="match_parent">
 
-    <TextView
-        android:id="@+id/sample_text"
+    <LinearLayout
         android:layout_width="match_parent"
-        android:gravity="center"
-        android:layout_height="50dp"
-        android:text="Hello World!"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1px"
-        android:background="@color/colorPrimary"/>
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
 
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="50dp"
-        android:id="@+id/tv_opengl_egl_show"
-        android:text="native openGL + EGL 渲染一张图"
-        android:gravity="center"/>
-    <SurfaceView
-        android:id="@+id/surface"
-        android:layout_width="match_parent"
-        android:layout_height="100dp"/>
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="50dp"
-        android:id="@+id/tv_render_video"
-        android:text="native openGL + EGL 渲染视频"
-        android:gravity="center"/>
-    <SurfaceView
-        android:id="@+id/video_surface"
-        android:layout_width="match_parent"
-        android:layout_height="200dp"/>
-    <View
-        android:id="@+id/v_touch_bar"
-        android:layout_width="match_parent"
-        android:layout_height="50dp"
-        android:background="@color/color_e27f32"/>
+        <TextView
+            android:id="@+id/sample_text"
+            android:layout_width="match_parent"
+            android:gravity="center"
+            android:layout_height="50dp"
+            android:text="Hello World!"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintRight_toRightOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1px"
+            android:background="@color/colorPrimary"/>
 
-</LinearLayout>
+        <TextView
+            android:visibility="gone"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:id="@+id/tv_opengl_egl_show"
+            android:text="native openGL + EGL 渲染一张图"
+            android:gravity="center"/>
+        <SurfaceView
+            android:visibility="gone"
+            android:id="@+id/surface"
+            android:layout_width="match_parent"
+            android:layout_height="100dp"/>
+        <TextView
+            android:visibility="gone"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:id="@+id/tv_render_video"
+            android:text="native openGL + EGL 渲染视频"
+            android:gravity="center"/>
+        <SurfaceView
+            android:id="@+id/video_surface"
+            android:layout_width="match_parent"
+            android:layout_height="200dp"/>
+        <View
+            android:id="@+id/v_touch_bar"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:background="@color/color_e27f32"/>
+
+        <SurfaceView
+            android:id="@+id/video_surface2"
+            android:layout_width="match_parent"
+            android:layout_height="200dp"/>
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:text="换背景音乐打开视频"
+            android:background="@color/color_e27f32"
+            android:gravity="center"
+            android:id="@+id/tv_open_video_with_bg"/>
+
+    </LinearLayout>
+
+</ScrollView>

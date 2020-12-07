@@ -158,22 +158,22 @@ int RmAudio::openOutput() {
     encoderCxt->width = codecCxt->width;
     encoderCxt->height = codecCxt->height;
     //设置时间基
-//    encoderCxt->time_base = codecCxt->time_base;
+//    encoderCxt->time_base = videoCodecCxt->time_base;
     encoderCxt->framerate = (AVRational) {25, 1};
     encoderCxt->time_base = (AVRational) {1, 25};
 
-//    encoderCxt->gop_size = codecCxt->gop_size;
+//    encoderCxt->gop_size = videoCodecCxt->gop_size;
     encoderCxt->gop_size = 12;
     //设置像素格式
     encoderCxt->pix_fmt = codecCxt->pix_fmt;
     //以下两个设置暂时未知
     if (encoderCxt->codec_id == AV_CODEC_ID_MPEG2VIDEO) {
-//        encoderCxt->max_b_frames = codecCxt->max_b_frames;
+//        encoderCxt->max_b_frames = videoCodecCxt->max_b_frames;
         /* just for testing, we also add B-frames */
         encoderCxt->max_b_frames = 2;
     }
     if (encoderCxt->codec_id == AV_CODEC_ID_MPEG1VIDEO) {
-//        encoderCxt->mb_decision = codecCxt->mb_decision;
+//        encoderCxt->mb_decision = videoCodecCxt->mb_decision;
         /* Needed to avoid using macroblocks in which some coeffs overflow.
          * This does not happen with normal video, it just happens here as
          * the motion of the chroma plane does not match the luma plane. */
@@ -407,8 +407,8 @@ void RmAudio::testEncode() {
         return;
     }
     /*for (int i = 0; i < 20; ++i) {
-        AVFrame *pFrame = FrameUtil::alloc_picture(AV_PIX_FMT_YUV420P, codecCxt->width, codecCxt->height);
-        FrameUtil::fill_yuv_image(pFrame, i, codecCxt->width, codecCxt->height);
+        AVFrame *pFrame = FrameUtil::alloc_picture(AV_PIX_FMT_YUV420P, videoCodecCxt->width, videoCodecCxt->height);
+        FrameUtil::fill_yuv_image(pFrame, i, videoCodecCxt->width, videoCodecCxt->height);
 
         encoder->encode(pFrame);
 

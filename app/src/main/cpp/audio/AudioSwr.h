@@ -11,8 +11,8 @@
  * 音频重采样封装
  */
 class AudioSwr {
-private:
-    SwrContext *pSwrContext;
+public:
+    SwrContext *pSwrContext = nullptr;
     //输入声道数
     int inChannels;
     //输出声道数

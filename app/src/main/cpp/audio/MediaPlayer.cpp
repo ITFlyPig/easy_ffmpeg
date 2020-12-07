@@ -191,8 +191,7 @@ int MediaPlayer::decode() {
     AudioDecoder *audioDecoder = nullptr;
     //打开openglse的音频播放器
     if (isAudioOpen) {
-        audioDecoder = new AudioDecoder(this, outDataSize);
-        audioDecoder->resampleFrameSize = outDataSize;
+        audioDecoder = new AudioDecoder(pAudioCodecCxt, nullptr);
         renderAudio = new RenderAudio(pAudioCodecCxt->channels, pAudioCodecCxt->sample_rate,
                                       audioDecoder);
         if (renderAudio->open() < 0) {
@@ -206,7 +205,7 @@ int MediaPlayer::decode() {
     }
 
     if (isVideoOpen) {
-        videoDecoder = new VideoDecoder(this);
+        videoDecoder = new VideoDecoder(pVideoCodecCxt);
         //启动解码视频的线程
         std::thread videoThread = std::thread(&VideoDecoder::start, videoDecoder);
         videoThread.detach();

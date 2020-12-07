@@ -26,6 +26,7 @@
 #include "audio/MediaPlayer.h"
 #include "ThumbnailUtil.h"
 #include "VideoSws.h"
+#include "OtherBgPlayer.h"
 
 #define STREAM_DURATION   10.0
 #define SCALE_FLAGS SWS_BICUBIC
@@ -1479,5 +1480,134 @@ Java_com_wyl_ffmpegtest_MainActivity_open(JNIEnv *env, jobject thiz, jstring jpa
                             mediaPlayer->nDstWidth, mediaPlayer->nDstHeight, mediaPlayer->mDstFmt);
     videoSws->prepare();
 
+
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_wyl_ffmpegtest_MainActivity_openWithBg(JNIEnv *env, jobject thiz, jstring video_path,
+                                                jstring audio_path, jobject surface, jint width,
+                                                jint height) {
+
+    ANativeWindow *nativeWindow = ANativeWindow_fromSurface(env, surface);
+    if (nativeWindow == nullptr) {
+        LOGE(TAG, "ANativeWindow创建失败");
+        return;
+    }
+    jboolean isCopy;
+    const char *videoPath = env->GetStringUTFChars(video_path, &isCopy);
+    const char *audioPath = env->GetStringUTFChars(audio_path, &isCopy);
+    OtherBgPlayer *otherBgPlayer = new OtherBgPlayer(nativeWindow, width, height);
+    otherBgPlayer->startPlay(videoPath, audioPath);
+
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_wyl_ffmpegtest_MainActivity_openMP3(JNIEnv *env, jobject thiz) {
+
+    av_log_set_callback(FFLog::log_callback_android);
+
+//    av_parser_parse2();直接将数据解析为frame
+
+    const char *mp3Path = NULL;
+    AVFormatContext *c = NULL;
+    int ret = -1;
+    int audio_index = -1;
+    AVCodecID dec_codec_id = AV_CODEC_ID_NONE;
+    AVCodec *dec_codec = NULL;
+    AVCodecContext *dec_codec_ctx = NULL;
+    AVPacket *packet = NULL;
+    AVFrame *frame = NULL;
+
+
+    mp3Path = "/sdcard/test.mp3";
+    //打开文件，创建一个流，读取文件头
+    ret = avformat_open_input(&c, mp3Path, NULL, NULL);
+    if (ret < 0) {
+        LOGE(TAG, "文件打开失败：%s", av_err2str(ret));
+        return;
+    }
+    //通过读取packets获得流相关的信息，这个方法对于没有header的媒体文件特别有用，读取到的packets会被缓存后续使用。
+    ret = avformat_find_stream_info(c, NULL);
+    if (ret < 0) {
+        return;
+    }
+
+    //通过流获取解码器相关
+    for (int i = 0; i < c->nb_streams; ++i) {
+        if (c->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_AUDIO) {
+            //找到视频流的索引
+            audio_index = i;
+            //记录解码器的id
+            dec_codec_id = c->streams[i]->codecpar->codec_id;
+        }
+    }
+    if (audio_index == -1) {
+        LOGE(TAG, "未找到视频流");
+        return;
+    }
+    //据id找找到解码器
+    LOGE(TAG, "解码器ID：%i  %i", dec_codec_id, AV_CODEC_ID_PNG);
+    dec_codec = avcodec_find_decoder(dec_codec_id);
+
+
+    if (dec_codec == NULL) {
+        LOGE(TAG, "未找到解码器");
+        return;
+    }
+    //创建解码上下文，初始化解码器默认值
+    dec_codec_ctx = avcodec_alloc_context3(dec_codec);
+    if (dec_codec_ctx == NULL) {
+        LOGE(TAG, "解码器上下文创建失败");
+        return;
+    }
+
+    //使用支持的解码器参数填充 解码器上下文
+    ret = avcodec_parameters_to_context(dec_codec_ctx, c->streams[audio_index]->codecpar);
+    if (ret < 0) {
+        LOGE(TAG, "Failed to copy decoder parameters to input decoder context：%s", av_err2str(ret));
+        return;
+    }
+
+    LOGE(TAG, "解码器的名字：%s, 像素格式：%i", dec_codec->name, dec_codec_ctx->pix_fmt);
+
+    //打开解码器:Initialize the AVCodecContext to use the given AVCodec.
+    ret = avcodec_open2(dec_codec_ctx, dec_codec, NULL);
+    if (ret < 0) {
+        LOGE(TAG, "Failed to open decoder for stream");
+        return;
+    }
+    w = dec_codec_ctx->width;
+    h = dec_codec_ctx->height;
+
+    //打印信息
+    av_dump_format(c, audio_index, mp3Path, 0);
+
+    //申请Packet容器
+    packet = av_packet_alloc();
+    if (packet == NULL) {
+        LOGE(TAG, "申请packet失败");
+        return;
+    }
+
+    frame = av_frame_alloc();
+    if (frame == NULL) {
+        LOGE(TAG, "申请packet失败");
+        return;
+    }
+    av_init_packet(packet);
+
+    while (av_read_frame(c, packet) == 0) {
+        LOGE(TAG, "packet size:%5d", packet->size);
+        int got_frame = -1;
+        int size = avcodec_decode_audio4(dec_codec_ctx, frame, &got_frame, packet);
+
+        LOGE(TAG, "解码得到的数据Frame:%d", *(frame->data[0]));
+        if (size < 0) {
+            LOGE(TAG, "解码Packet错误：%s", av_err2str(size));
+            return;
+        }
+    }
 
 }

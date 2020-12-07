@@ -27,33 +27,22 @@ private:
     std::mutex packeTmtx;
     std::condition_variable putPacketCondition;
     std::condition_variable getPacketCondition;
-    //上一次播放的帧
-    FrameInfo *lastFrame;
 
     std::mutex frameTmtx;
     std::condition_variable putFrameCondition;
     std::condition_variable getFrameCondition;
 
-    MediaPlayer *mediaPlayer;
-
+    AVCodecContext *videoCodecCxt;
 
 public:
-    VideoDecoder(MediaPlayer *mediaPlayer);
+    VideoDecoder(AVCodecContext *videoCodecCxt);
 
-    //将包放到带解压的队列
+    //将包放到待解压的队列
     void put(PacketInfo* packetInfo);
     //获取解压后的帧数据
     FrameInfo* get();
     //开始解码
     void start();
-
-
-public:
-    //重采样后一帧的大小
-    int resampleFrameSize;
-
-
-
 };
 
 #endif //FFMPEGTEST_VIDEODECODER_H

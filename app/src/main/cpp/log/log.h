@@ -33,6 +33,9 @@ extern "C" {
 
 const static char *TAG = "FFlog";
 
+static int ERROR_CODE = -1;
+static int SUCCESS_CODE = 1;
+
 class FFLog {
 private:
 public:

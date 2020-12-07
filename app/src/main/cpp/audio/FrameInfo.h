@@ -18,14 +18,14 @@ public:
     AVRational tb;
 
     AVFrame *videoFrame;
-
-
 public:
     FrameInfo(void *data, long size, int64_t pts);
 
     FrameInfo(AVFrame *videoFrame);
 
+    FrameInfo();
 
+    virtual ~FrameInfo();
 };
 
 #endif //FFMPEGTEST_FRAMEINFO_H
