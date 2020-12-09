@@ -93,7 +93,7 @@ void AudioDecoder::start() {
                     audioSwr->outChannels,//通道数
                     audioSwr->outSampleRate,//单个通道的采样个数
                     audioSwr->outSampleFmt,//采样格式
-                    1);//计算1s的数据大小，使缓冲区足够大
+                    0);//计算1s的数据大小，使缓冲区足够大
             uint8_t *audioOutBuffer = (uint8_t *) malloc(resampleSize);
             //获取新采样率下的采样个数
             int dstNbSamples = av_rescale_rnd(pAudioFrame->nb_samples,
@@ -114,7 +114,9 @@ void AudioDecoder::start() {
                 continue;
             }
             //计算重采样后的数据大小
-            int resampledDataSize = len * audioSwr->outChannels * av_get_bytes_per_sample(audioSwr->outSampleFmt);
+            int resampledDataSize = av_samples_get_buffer_size(nullptr, audioSwr->outChannels, len, audioSwr->outSampleFmt, 0);
+            LOGE(TAG, "重采样的数据量：%d 后数据的大小:%d", len, resampledDataSize);
+
             audioFrame->data = audioOutBuffer;
             audioFrame->size = resampledDataSize;
 

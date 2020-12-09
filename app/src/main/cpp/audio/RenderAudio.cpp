@@ -50,7 +50,7 @@ int RenderAudio::open() {
     //音频格式
     SLDataFormat_PCM pcm = {
             SL_DATAFORMAT_PCM,////播放pcm格式的数据
-            (SLuint32) channels,// 2个声道（立体声）
+            (SLuint32) channels,// 声道数
 //            (SLuint32) parameter.sample_rate * 1000,
             static_cast<SLuint32>(openSLSampleRate(sampleRate)),//采样率
             SL_PCMSAMPLEFORMAT_FIXED_16,//采样位数
