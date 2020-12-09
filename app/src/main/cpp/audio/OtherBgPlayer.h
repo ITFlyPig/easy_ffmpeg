@@ -70,6 +70,16 @@ private:
     */
     void readStream();
 
+    /**
+     * 读取视频流
+     */
+    void readVideoStream();
+
+    /**
+     * 读取音频流
+     */
+    void readAudioStream();
+
 
 public:
     /**

@@ -46,7 +46,7 @@ int RenderAudio::open() {
 
     //3 配置音频信息
     //缓冲队列
-    SLDataLocator_AndroidSimpleBufferQueue que = {SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE, 5};
+    SLDataLocator_AndroidSimpleBufferQueue que = {SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE, 2};
     //音频格式
     SLDataFormat_PCM pcm = {
             SL_DATAFORMAT_PCM,////播放pcm格式的数据

@@ -36,6 +36,11 @@ FrameInfo *AudioDecoder::get() {
     LOGE(TAG, "从Frame队列中获取到Frame，剩余的Frame数量%d", frameQueue.size());
     putFrameCondition.notify_one();
     frameLock.unlock();
+
+    //将当前正在播放的帧的pts记录下来，方便视频同步
+    curPts = frame->pts;
+    curTb = frame->tb;
+
     return frame;
 }
 
@@ -61,7 +66,9 @@ void AudioDecoder::start() {
         LOGE(TAG, "开始解码获取到的Packet，pos为：%lld", packetInfo->packet->pos);
         AVCodecContext *pAudioCodecCxt = audioCodecCxt;
         ret = avcodec_send_packet(pAudioCodecCxt, packetInfo->packet);
-        if (ret < 0) {
+        if (ret == AVERROR(EAGAIN)) {
+            LOGE(TAG, "avcodec_send_packet 返回AVERROR(EAGAIN)")
+        } else if (ret < 0) {
             LOGE(TAG, "Error sending a packet for decoding:%s", av_err2str(ret))
             return;
         }
@@ -119,31 +126,10 @@ void AudioDecoder::start() {
 
             audioFrame->data = audioOutBuffer;
             audioFrame->size = resampledDataSize;
-
-//            uint8_t *resampleFrame = nullptr;
-//            int size = audioSwr->convert(&resampleFrame, pAudioFrame->nb_samples,
-//                                         (const uint8_t**)pAudioFrame->data,
-//                                         pAudioFrame->nb_samples);
-//            if (size > 0) {
-//                audioFrame->data = resampleFrame;
-//                audioFrame->size = size;
-//            } else {
-//                delete audioFrame;
-//                continue;
-//            }
-
-
-            /*//得到音频的时间基
-            AVRational tb = (AVRational) {1, pAudioCodecCxt->sample_rate};
-//                LOGD(TAG, "是否是平面音频数据:%d", av_sample_fmt_is_planar(pAudioCodecCxt->sample_fmt))
-            uint8_t *audioOutBuffer = (uint8_t *) malloc(resampleFrameSize);
-            //重采样，frame 为解码帧
-            ret = swr_convert(mediaPlayer->pAudioSwsCxt, &audioOutBuffer, resampleFrameSize / 2,
-                              (const uint8_t **) pAudioFrame->data, pAudioFrame->nb_samples);
-            FrameInfo *frameInfo = nullptr;
-            frameInfo = new FrameInfo(audioOutBuffer, resampleFrameSize, pAudioFrame->pts);
-            frameInfo->tb = tb;*/
-
+            //记录pts
+            audioFrame->pts = pAudioFrame->pts;
+            //记录时间基
+            audioFrame->tb = pAudioCodecCxt->time_base;
 
             LOGE(TAG, "将解码得到的Frame放入队列");
             frameQueue.push_back(audioFrame);

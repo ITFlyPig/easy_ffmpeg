@@ -49,6 +49,12 @@ public:
     FrameInfo* get();
     //开始解码
     void start();
+
+public:
+    //当前正在播放的帧的pts
+    int64_t curPts;
+    //当前播放的帧的时间基
+    AVRational curTb;
 };
 
 #endif //FFMPEGTEST_AUDIODECODER_H
